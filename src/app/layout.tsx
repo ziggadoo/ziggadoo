@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://ziggadoo.com"),
   title: { default: "ziggadoo", template: "%s | ziggadoo" },
   description: "What shall we do today? Find the right thing to do with your kids in Dubai, for their ages, right now.",
+  robots: { index: false, follow: false },
   openGraph: { siteName: "ziggadoo", locale: "en_AE", type: "website" },
 };
 
