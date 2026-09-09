@@ -5,6 +5,7 @@ import { ageRange, priceLine } from "@/lib/format";
 import { illustrationFor } from "@/lib/illustration";
 import type { Metadata } from "next";
 import VenueActions from "@/components/VenueActions";
+import Logo from "@/components/Logo";
 import { ageLabel } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -57,7 +58,7 @@ export default async function VenuePage({ params, searchParams }: { params: Prom
   return (
     <main className="mx-auto max-w-2xl px-4 pb-16 pt-6 sm:px-6">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <Link href="/" className="text-sm font-bold text-cobalt">← Back to results</Link>
+      <div className="flex items-center justify-between"><Link href="/" className="text-sm font-bold text-cobalt">← Back to results</Link><Logo className="h-6" /></div>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={illustrationFor(v.categories, v.hero_image_url)} alt="" className="mt-4 aspect-[2/1] w-full rounded-3xl object-cover ring-1 ring-ink/10" />
       <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
@@ -127,7 +128,7 @@ export default async function VenuePage({ params, searchParams }: { params: Prom
         </ul>
       </section>
 
-      <VenueActions venueId={v.id} slug={v.slug} msg={msg} signedIn={!!user} myReview={myReview ? { rating: myReview.rating, status: myReview.status } : null} />
+      <VenueActions venueId={v.id} slug={v.slug} msg={msg} signedIn={!!user} myReview={myReview ? { rating: myReview.rating, status: myReview.status } : null} claimed={!!v.claimed_by} />
       {user && <form action="/auth/signout" method="post" className="mt-4 text-right"><button className="text-xs text-ink/50 underline">Sign out ({user.email})</button></form>}
 
       <p className="mt-8 text-xs text-ink/50">Source: {v.source === "ai_seed" ? "AI-assisted research, not yet verified by the ziggadoo team" : v.source}. Prices are list prices without discounts.</p>

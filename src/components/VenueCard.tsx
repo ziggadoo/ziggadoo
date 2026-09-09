@@ -31,6 +31,7 @@ export default function VenueCard({ v, kidAges, adults, tagline, categories }: {
       <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-ink/80">
         <span>{v.area ?? ""} · {Number(v.distance_km).toFixed(0)} km</span>
         <span>Best for {ageRange(v.best_age_min_months, v.best_age_max_months)}</span>
+        {v.rating_avg != null && v.review_count > 0 && <span className="font-bold text-sun">{"★".repeat(Math.round(Number(v.rating_avg)))}<span className="text-ink/60"> {Number(v.rating_avg).toFixed(1)} ({v.review_count})</span></span>}
       </div>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs text-ink/80">{priceLine(v)}</span>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { START_POINTS } from "@/lib/places";
 
-export default function SearchBar({ ages, indoor, from, near, adults = 1 }: { ages: string; indoor: string; from: string; near?: string; adults?: number }) {
+export default function SearchBar({ ages, indoor, from, near, adults = 1, homeschool = false }: { ages: string; indoor: string; from: string; near?: string; adults?: number; homeschool?: boolean }) {
   const [locating, setLocating] = useState(false);
   const [coords, setCoords] = useState(near ?? "");
   const [locError, setLocError] = useState("");
@@ -47,6 +47,9 @@ export default function SearchBar({ ages, indoor, from, near, adults = 1 }: { ag
         </select>
       </label>
       <input type="hidden" name="near" value={coords} />
+      <label className="col-span-2 flex items-center gap-2 text-sm font-semibold text-ink/80">
+        <input type="checkbox" name="hs" value="1" defaultChecked={homeschool} className="h-4 w-4" /> Great for home schoolers
+      </label>
       <div className="col-span-2 flex items-center justify-between gap-2">
         <button type="button" onClick={locate} className="text-sm font-bold text-cobalt">{locating ? "Locating…" : coords ? "Using my location ✓" : "Use my location"}</button>
         {locError && <span className="text-xs text-persimmon">{locError}</span>}

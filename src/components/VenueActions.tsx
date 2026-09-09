@@ -1,14 +1,15 @@
 import { submitClaim, submitReport, submitReview } from "@/app/v/[slug]/actions";
+import PhotoUpload from "@/components/PhotoUpload";
 
 const field = "w-full rounded-xl border border-ink/15 bg-white px-3 py-2 text-base outline-none focus:border-cobalt";
-const YesNo = ({ name, label }: { name: string; label: string }) => (
+const YesNo = ({ name, label, na = false }: { name: string; label: string; na?: boolean }) => (
   <fieldset className="flex items-center justify-between gap-3 text-sm">
     <span>{label}</span>
-    <span className="flex gap-3"><label><input type="radio" name={name} value="yes" /> Yes</label><label><input type="radio" name={name} value="no" /> No</label></span>
+    <span className="flex gap-3"><label><input type="radio" name={name} value="yes" /> Yes</label><label><input type="radio" name={name} value="no" /> No</label>{na && <label><input type="radio" name={name} value="na" defaultChecked /> Not sure</label>}</span>
   </fieldset>
 );
 
-export default function VenueActions({ venueId, slug, msg, signedIn, myReview }: { venueId: string; slug: string; msg?: string; signedIn: boolean; myReview: { rating: number; status: string } | null }) {
+export default function VenueActions({ venueId, slug, msg, signedIn, myReview, claimed }: { venueId: string; slug: string; msg?: string; signedIn: boolean; myReview: { rating: number; status: string } | null; claimed: boolean }) {
   const hidden = <><input type="hidden" name="venue_id" value={venueId} /><input type="hidden" name="slug" value={slug} /></>;
   const ok = (k: string) => msg === k;
   const err = msg && !msg.endsWith("-ok") && msg !== "rating" ? msg : null;
@@ -28,7 +29,7 @@ export default function VenueActions({ venueId, slug, msg, signedIn, myReview }:
             <label className="text-sm">Ages of your kids who loved it (years)<input name="loved_ages" placeholder="e.g. 2, 6" className={field + " mt-1"} /></label>
             <YesNo name="would_return" label="Would you go back?" />
             <YesNo name="good_value" label="Good value for the price?" />
-            <YesNo name="good_for_party" label="Good venue for a birthday party?" />
+            <YesNo name="good_for_party" label="Good venue for a birthday party?" na />
             <label className="text-sm">Party notes (price, what&apos;s included, what to watch)<input name="party_note" className={field + " mt-1"} /></label>
             <label className="text-sm">How long did you stay? (minutes)<input name="duration_min" type="number" min={15} max={720} className={field + " mt-1"} /></label>
             <label className="text-sm">Your review<textarea name="body" rows={4} placeholder="Describe your visit. Keep it about the place, not the people." className={field + " mt-1"} /></label>
@@ -53,8 +54,14 @@ export default function VenueActions({ venueId, slug, msg, signedIn, myReview }:
         )}
       </details>
 
-      <details id="claim" className="rounded-3xl bg-white p-4 ring-1 ring-ink/10" open={msg?.startsWith("claim")}>
-        <summary className="cursor-pointer font-bold">Own or manage this venue? Claim it</summary>
+      <details id="photo" className="rounded-3xl bg-white p-4 ring-1 ring-ink/10" open={msg?.startsWith("photo")}>
+        <summary className="cursor-pointer font-bold">Add a photo</summary>
+        <PhotoUpload venueId={venueId} slug={slug} signedIn={signedIn} />
+      </details>
+
+      {!claimed && (
+      <details id="claim" className="mt-2 text-xs text-ink/55" open={msg?.startsWith("claim")}>
+        <summary className="cursor-pointer underline">Own or manage this venue? Claim this listing</summary>
         {ok("claim-ok") ? <p className="mt-3 text-sm">Thanks. We&apos;ll verify and get back to you by email.</p> : (
           <form action={submitClaim} className="mt-4 grid gap-3">
             {hidden}
@@ -67,6 +74,7 @@ export default function VenueActions({ venueId, slug, msg, signedIn, myReview }:
           </form>
         )}
       </details>
+      )}
     </section>
   );
 }

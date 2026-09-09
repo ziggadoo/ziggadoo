@@ -1,3 +1,4 @@
+import Logo from "@/components/Logo";
 import Link from "next/link";
 import { sendMagicLink, signInWithGoogle } from "./actions";
 
@@ -9,7 +10,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
   const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_LOGIN === "1";
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 py-10">
-      <Link href="/" className="text-2xl font-extrabold tracking-tight">ziggadoo</Link>
+      <Logo />
       <h1 className="mt-8 text-3xl font-extrabold leading-tight tracking-tight">Sign in to review, report and claim</h1>
       <p className="mt-2 text-ink/70">No password. We email you a link, or use Google.</p>
       {sp.sent ? (
