@@ -22,6 +22,11 @@ export async function moderate(fd: FormData) {
   const decision = String(fd.get("decision"));
   const table = TABLES[kind];
   if (!table) return;
+  const back = String(fd.get("back") ?? "/admin");
+  if (decision === "delete") {
+    await supabase.from(table).delete().eq("id", id);
+    revalidatePath(back); redirect(back);
+  }
   if (kind === "report") {
     await supabase.from("reports").update({ status: decision === "approve" ? "resolved" : "dismissed", resolved_at: new Date().toISOString(), resolved_by: user.id }).eq("id", id);
   } else {
@@ -34,8 +39,8 @@ export async function moderate(fd: FormData) {
       await supabase.from("profiles").update({ role: "business" }).eq("id", c.profile_id).neq("role", "admin");
     }
   }
-  revalidatePath("/admin");
-  redirect("/admin");
+  revalidatePath(back);
+  redirect(back);
 }
 
 const NUM = ["price_child_aed", "price_adult_aed", "age_min_months", "age_max_months", "best_age_min_months", "best_age_max_months", "free_under_months", "typical_duration_min"];

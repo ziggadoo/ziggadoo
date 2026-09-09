@@ -31,8 +31,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
     supabase.from("venue_claims").select("id, business_email, evidence, created_at, venues(name, slug, website)").eq("status", "pending").order("created_at"),
     supabase.from("venue_suggestions").select("id, name, area, url, note, created_at").eq("status", "pending").order("created_at"),
     supabase.from("reports").select("id, kind, note, created_at, venues(name, slug)").eq("status", "open").order("created_at"),
-    q ? supabase.from("venues").select("id, name, area, status, price_model, last_verified_at").ilike("name", `%${q}%`).order("name").limit(50)
-      : supabase.from("venues").select("id, name, area, status, price_model, last_verified_at").eq("price_model", "unknown").order("name").limit(50),
+    supabase.from("venues").select("id, name, area, status, price_model, last_verified_at").ilike("name", q ? `%${q}%` : "%").order("name").limit(300),
   ]);
   const vname = (v: unknown) => (v as { name: string; slug: string } | null);
   const box = "rounded-2xl bg-white p-3 ring-1 ring-ink/10 text-sm";
@@ -96,11 +95,11 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
 
       <h1 className="mt-10 text-3xl font-extrabold tracking-tight">Venues</h1>
       <form method="get" className="mt-3 flex gap-2"><input name="q" defaultValue={q ?? ""} placeholder="Search by name" className="min-w-0 flex-1 rounded-xl border border-ink/15 bg-white px-3 py-2" /><button className="rounded-xl bg-ink px-4 py-2 font-bold text-oat">Find</button></form>
-      <p className="mt-2 text-xs text-ink/50">{q ? `Results for "${q}"` : "Showing venues with no confirmed price. Search to find any venue."}</p>
+      <p className="mt-2 text-xs text-ink/50">{venues.data?.length ?? 0} venues{q ? ` matching "${q}"` : ""}. Orange dot = no confirmed price.</p>
       <ul className="mt-2 grid gap-1">
         {venues.data?.map((v) => (
           <li key={v.id} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm ring-1 ring-ink/10">
-            <span><b>{v.name}</b> <span className="text-ink/50">· {v.area} · {v.status}{v.last_verified_at ? " · verified" : ""}</span></span>
+            <span>{v.price_model === "unknown" && <span className="mr-1 inline-block h-2 w-2 rounded-full bg-persimmon" />}<b>{v.name}</b> <span className="text-ink/50">· {v.area}{v.status !== "verified" ? ` · ${v.status}` : ""}{v.last_verified_at ? " · checked" : ""}</span></span>
             <Link href={`/admin/venues/${v.id}`} className="font-bold text-cobalt">Edit</Link>
           </li>
         ))}

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { saveVenue } from "../../actions";
+import { moderate, saveVenue } from "../../actions";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Edit venue", robots: { index: false } };
@@ -20,6 +20,19 @@ export default async function EditVenue({ params, searchParams }: { params: Prom
   if (me?.role !== "admin") redirect("/");
   const { data: v } = await supabase.from("venues").select("*").eq("id", id).maybeSingle();
   if (!v) notFound();
+  const [{ data: reviews }, { data: photos }] = await Promise.all([
+    supabase.from("reviews").select("id, rating, body, status, created_at, profiles(display_name)").eq("venue_id", id).order("created_at", { ascending: false }),
+    supabase.from("venue_photos").select("id, storage_path, caption, status, is_community").eq("venue_id", id).order("sort_order"),
+  ]);
+  const Mod = ({ kind, itemId, status }: { kind: string; itemId: string; status: string }) => (
+    <form action={moderate} className="flex items-center gap-2 text-xs">
+      <input type="hidden" name="kind" value={kind} /><input type="hidden" name="id" value={itemId} /><input type="hidden" name="back" value={`/admin/venues/${id}`} />
+      <span className={`rounded-full px-2 py-0.5 font-bold ${status === "approved" ? "bg-pool/40" : status === "rejected" ? "bg-ink/10" : "bg-sun/40"}`}>{status}</span>
+      {status !== "approved" && <button name="decision" value="approve" className="font-bold text-cobalt">Approve</button>}
+      {status !== "rejected" && <button name="decision" value="reject" className="font-bold">Reject</button>}
+      <button name="decision" value="delete" className="font-bold text-persimmon">Delete</button>
+    </form>
+  );
 
   return (
     <main className="mx-auto max-w-2xl px-4 pb-16 pt-6 sm:px-6">
@@ -55,6 +68,28 @@ export default async function EditVenue({ params, searchParams }: { params: Prom
         <label className="flex items-center gap-2 text-sm font-semibold sm:col-span-2"><input type="checkbox" name="mark_verified" value="1" /> Mark as verified by me today (gives the freshness boost and removes the AI-research label)</label>
         <button className="rounded-xl bg-ink px-4 py-2.5 font-bold text-oat sm:col-span-2">Save</button>
       </form>
+
+      <h2 className="mt-8 text-sm font-bold uppercase tracking-wide text-ink/50">Reviews ({reviews?.length ?? 0})</h2>
+      <ul className="mt-2 grid gap-2">
+        {reviews?.map((r) => (
+          <li key={r.id} className="rounded-2xl bg-white p-3 text-sm ring-1 ring-ink/10">
+            <div className="flex justify-between"><span>{"★".repeat(r.rating)} · {(r.profiles as unknown as { display_name: string | null } | null)?.display_name ?? "?"}</span><span className="text-xs text-ink/50">{new Date(r.created_at).toLocaleDateString("en-GB")}</span></div>
+            {r.body && <p className="mt-1">{r.body}</p>}
+            <div className="mt-2"><Mod kind="review" itemId={r.id} status={r.status} /></div>
+          </li>
+        ))}
+      </ul>
+
+      <h2 className="mt-6 text-sm font-bold uppercase tracking-wide text-ink/50">Photos ({photos?.length ?? 0})</h2>
+      <ul className="mt-2 grid gap-2">
+        {photos?.map((p) => (
+          <li key={p.id} className="flex gap-3 rounded-2xl bg-white p-3 text-sm ring-1 ring-ink/10">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={p.storage_path} alt="" className="h-16 w-16 rounded-xl object-cover" />
+            <div className="min-w-0 flex-1"><p className="text-xs text-ink/70">{p.caption}{p.is_community ? " · parent upload" : ""}</p><div className="mt-2"><Mod kind="photo" itemId={p.id} status={p.status} /></div></div>
+          </li>
+        ))}
+      </ul>
     </main>
   );
 }
