@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
-async function shrink(file: File, max = 1200, quality = 0.8): Promise<Blob> {
+async function shrink(file: File, max = 1200, quality = 0.72): Promise<Blob> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
@@ -46,8 +46,14 @@ export default function PhotoUpload({ venueId, slug, signedIn }: { venueId: stri
   if (state === "done") return <p className="mt-3 text-sm">Thanks. Photos show once we&apos;ve checked them.</p>;
   return (
     <div className="mt-4 grid gap-3">
-      <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="text-sm" />
-      <input value={caption} onChange={(e) => setCaption(e.target.value)} maxLength={160} placeholder="Caption, e.g. Toddler area for under 2s" className="w-full rounded-xl border border-ink/15 bg-white px-3 py-2 text-base outline-none focus:border-cobalt" />
+      <label className="flex cursor-pointer items-center gap-3">
+        <span className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold ring-1 ring-ink/20">{file ? "Change photo" : "Choose photo"}</span>
+        <span className="min-w-0 truncate text-sm text-ink/60">{file ? file.name : "No photo chosen yet"}</span>
+        <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="sr-only" />
+      </label>
+      <label className="text-sm">Description of photo (optional)
+        <input value={caption} onChange={(e) => setCaption(e.target.value)} maxLength={160} placeholder="e.g. Toddler area for under 2s" className="mt-1 w-full rounded-xl border border-ink/15 bg-white px-3 py-2 text-base outline-none focus:border-cobalt" />
+      </label>
       <p className="text-xs text-ink/50">Photos are resized on your phone before upload, so big files are fine. By uploading you confirm it&apos;s your own photo and you&apos;re happy for us to show it.</p>
       <button type="button" disabled={!file || state === "busy"} onClick={upload} className="rounded-xl bg-ink px-4 py-2.5 font-bold text-oat disabled:opacity-40">{state === "busy" ? "Uploading…" : "Upload photo"}</button>
       {err && <p className="text-sm text-persimmon">{err}</p>}

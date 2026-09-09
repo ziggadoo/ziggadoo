@@ -11,14 +11,14 @@ function Buttons({ kind, id }: { kind: string; id: string }) {
   return (
     <form action={moderate} className="flex gap-2">
       <input type="hidden" name="kind" value={kind} /><input type="hidden" name="id" value={id} />
-      <button name="decision" value="approve" className="rounded-lg bg-ink px-3 py-1 text-xs font-bold text-oat">Approve</button>
-      <button name="decision" value="reject" className="rounded-lg bg-white px-3 py-1 text-xs font-bold ring-1 ring-ink/20">Reject</button>
+      <button type="submit" name="decision" value="approve" className="rounded-lg bg-ink px-3 py-1 text-xs font-bold text-oat">Approve</button>
+      <button type="submit" name="decision" value="reject" className="rounded-lg bg-white px-3 py-1 text-xs font-bold ring-1 ring-ink/20">Reject</button>
     </form>
   );
 }
 
-export default async function Admin({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  const { q } = await searchParams;
+export default async function Admin({ searchParams }: { searchParams: Promise<{ q?: string; msg?: string }> }) {
+  const { q, msg } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/admin");
@@ -40,6 +40,8 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
     <main className="mx-auto max-w-3xl px-4 pb-16 pt-6 sm:px-6">
       <div className="flex items-center justify-between"><Logo /><span className="rounded-full bg-sun px-2.5 py-0.5 text-xs font-bold">Admin</span></div>
       <h1 className="mt-4 text-3xl font-extrabold tracking-tight">Moderation</h1>
+      {msg === "nodecision" && <p className="mt-2 rounded-xl bg-sun/40 px-3 py-2 text-sm">That tap didn&apos;t register a decision, nothing was changed. Please try again.</p>}
+      {msg && msg !== "nodecision" && <p className="mt-2 rounded-xl bg-persimmon/15 px-3 py-2 text-sm">Could not save: {msg}</p>}
 
       <h2 className="mt-6 text-sm font-bold uppercase tracking-wide text-ink/50">Reviews ({reviews.data?.length ?? 0})</h2>
       <div className="mt-2 grid gap-2">

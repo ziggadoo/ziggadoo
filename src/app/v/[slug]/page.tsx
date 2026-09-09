@@ -122,7 +122,7 @@ export default async function VenuePage({ params, searchParams }: { params: Prom
               <div className="flex items-center justify-between text-sm"><span className="font-bold">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</span><span className="text-ink/50">{((r.profiles as unknown as { display_name: string | null } | null)?.display_name) ?? "A parent"}</span></div>
               {r.loved_it_ages_months?.length ? <p className="mt-1 text-xs text-ink/60">Loved by ages {r.loved_it_ages_months.map((m: number) => ageLabel(m)).join(", ")}{r.duration_min ? ` · stayed ${r.duration_min} min` : ""}</p> : null}
               {r.body && <p className="mt-2 text-sm leading-relaxed">{r.body}</p>}
-              {r.good_for_party != null && <p className="mt-2 text-xs font-bold">{r.good_for_party ? "Good for parties" : "Not for parties"}{r.party_note ? `: ${r.party_note}` : ""}</p>}
+              {r.good_for_party != null && <p className="mt-2 text-xs"><span className="rounded-full bg-sun px-2 py-0.5 font-bold">Reviewer says: {r.good_for_party ? "good for parties" : "not for parties"}</span>{r.party_note ? <span className="ml-2 text-ink/70">{r.party_note}</span> : null}</p>}
             </li>
           ))}
         </ul>

@@ -19,10 +19,11 @@ export async function moderate(fd: FormData) {
   const { supabase, user } = await admin();
   const kind = String(fd.get("kind")) as keyof typeof TABLES;
   const id = String(fd.get("id"));
-  const decision = String(fd.get("decision"));
+  const decision = String(fd.get("decision") ?? "");
   const table = TABLES[kind];
-  if (!table) return;
   const back = String(fd.get("back") ?? "/admin");
+  // Never guess: an empty or unknown decision (can happen if the form submits before hydration) does nothing.
+  if (!table || !["approve", "reject", "delete"].includes(decision)) { redirect(back + "?msg=nodecision"); }
   if (decision === "delete") {
     await supabase.from(table).delete().eq("id", id);
     revalidatePath(back); redirect(back);
@@ -30,7 +31,8 @@ export async function moderate(fd: FormData) {
   if (kind === "report") {
     await supabase.from("reports").update({ status: decision === "approve" ? "resolved" : "dismissed", resolved_at: new Date().toISOString(), resolved_by: user.id }).eq("id", id);
   } else {
-    await supabase.from(table).update({ status: decision === "approve" ? "approved" : "rejected" }).eq("id", id);
+    const { error } = await supabase.from(table).update({ status: decision === "approve" ? "approved" : "rejected" }).eq("id", id);
+    if (error) redirect(back + "?msg=" + encodeURIComponent(error.message));
   }
   if (kind === "claim" && decision === "approve") {
     const { data: c } = await supabase.from("venue_claims").select("venue_id, profile_id").eq("id", id).maybeSingle();

@@ -31,7 +31,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
           )}
         </>
       )}
-      {sp.error && <p className="mt-3 text-sm text-persimmon">Something went wrong: {sp.error}</p>}
+      {sp.error && /only request this after|rate limit/i.test(sp.error) ? <p className="mt-3 text-sm">We just sent you a link. Check your inbox (and spam) before asking for another, you can request a new one in about a minute.</p> : sp.error && <p className="mt-3 text-sm text-persimmon">Something went wrong: {sp.error}</p>}
       <p className="mt-8 text-xs text-ink/50">By signing in you agree to our <Link href="/terms" className="underline">terms</Link> and <Link href="/privacy" className="underline">privacy policy</Link>.</p>
     </main>
   );
