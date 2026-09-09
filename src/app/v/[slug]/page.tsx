@@ -2,10 +2,21 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ageRange, priceLine } from "@/lib/format";
+import { illustrationFor } from "@/lib/illustration";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
 const DAYS: [string, string][] = [["mon","Mon"],["tue","Tue"],["wed","Wed"],["thu","Thu"],["fri","Fri"],["sat","Sat"],["sun","Sun"]];
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const supabase = await createClient();
+  const { data: v } = await supabase.from("venues").select("name, tagline, area").eq("slug", slug).maybeSingle();
+  if (!v) return {};
+  const title = `${v.name} in ${v.area}: ages, prices, hours`;
+  return { title, description: v.tagline ?? `${v.name}, a kids' activity in ${v.area}, Dubai. Ages, list prices, opening hours and how to book.`, alternates: { canonical: `/v/${slug}` } };
+}
 
 export default async function VenuePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -16,9 +27,27 @@ export default async function VenuePage({ params }: { params: Promise<{ slug: st
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.name + " " + (v.address ?? "Dubai"))}`;
   const wa = v.whatsapp ? `https://wa.me/${String(v.whatsapp).replace(/\D/g, "")}` : null;
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": ["TouristAttraction", "LocalBusiness"],
+    name: v.name,
+    description: v.tagline ?? v.description ?? undefined,
+    url: `https://ziggadoo.com/v/${v.slug}`,
+    telephone: v.phone ?? undefined,
+    sameAs: v.website ? [v.website] : undefined,
+    address: { "@type": "PostalAddress", streetAddress: v.address ?? undefined, addressLocality: "Dubai", addressCountry: "AE" },
+    isAccessibleForFree: v.price_model === "free",
+    priceRange: v.price_child_aed ? `AED ${v.price_child_aed}` : undefined,
+    openingHours: DAYS.filter(([k]) => hours[k]).map(([k, l]) => `${l.slice(0, 2)} ${hours[k]}`),
+    audience: { "@type": "PeopleAudience", suggestedMinAge: v.best_age_min_months ? Math.floor(v.best_age_min_months / 12) : undefined, suggestedMaxAge: v.best_age_max_months ? Math.floor(v.best_age_max_months / 12) : undefined },
+  };
+
   return (
     <main className="mx-auto max-w-2xl px-4 pb-16 pt-6 sm:px-6">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <Link href="/" className="text-sm font-bold text-cobalt">← Back to results</Link>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={illustrationFor(v.categories, v.hero_image_url)} alt="" className="mt-4 aspect-[2/1] w-full rounded-3xl object-cover ring-1 ring-ink/10" />
       <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
         <span className="rounded-full bg-cobalt/10 px-2.5 py-1 text-cobalt">{v.indoor_outdoor === "mixed" ? "Indoor & outdoor" : v.indoor_outdoor[0].toUpperCase() + v.indoor_outdoor.slice(1)}</span>
         {v.locations?.name && <span className="rounded-full bg-ink/5 px-2.5 py-1">{v.locations.name}</span>}

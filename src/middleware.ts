@@ -5,7 +5,7 @@ export const ACCESS_TOKEN = "ok-2026-09";
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  if (pathname.startsWith("/enter") || pathname.startsWith("/api/enter") || pathname.startsWith("/api/health")) {
+  if (pathname.startsWith("/enter") || pathname.startsWith("/api/enter") || pathname.startsWith("/api/health") || pathname === "/sitemap.xml" || pathname === "/robots.txt" || pathname.startsWith("/illustrations/")) {
     return NextResponse.next();
   }
   if (req.cookies.get(ACCESS_COOKIE)?.value === ACCESS_TOKEN) return NextResponse.next();

@@ -24,9 +24,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
   });
   const rows = (data ?? []) as SearchRow[];
   const { data: taglines } = rows.length
-    ? await supabase.from("venues").select("id, tagline").in("id", rows.map((r) => r.id))
-    : { data: [] as { id: string; tagline: string | null }[] };
-  const tagById = new Map((taglines ?? []).map((t) => [t.id, t.tagline]));
+    ? await supabase.from("venues").select("id, tagline, categories").in("id", rows.map((r) => r.id))
+    : { data: [] as { id: string; tagline: string | null; categories: string[] }[] };
+  const metaById = new Map((taglines ?? []).map((t) => [t.id, t]));
 
   return (
     <main className="mx-auto max-w-2xl px-4 pb-16 pt-6 sm:px-6">
@@ -42,7 +42,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
         {rows.length} places from {start.label}{kidAges.length ? `, sorted for ages ${sp.ages}` : ""}. Totals assume 2 adults.
       </p>
       <div className="mt-3 grid gap-3">
-        {rows.map((v) => <VenueCard key={v.id} v={v} kidAges={kidAges} adults={2} tagline={tagById.get(v.id)} />)}
+        {rows.map((v) => <VenueCard key={v.id} v={v} kidAges={kidAges} adults={2} tagline={metaById.get(v.id)?.tagline} categories={metaById.get(v.id)?.categories} />)}
       </div>
     </main>
   );
