@@ -26,11 +26,12 @@ export default async function VenuePage({ params, searchParams }: { params: Prom
   const supabase = await createClient();
   const { data: v } = await supabase.from("venues").select("*, locations(name)").eq("slug", slug).maybeSingle();
   if (!v) notFound();
-  const [{ data: { user } }, { data: reviews }, { data: stats }, { data: party }] = await Promise.all([
+  const [{ data: { user } }, { data: reviews }, { data: stats }, { data: party }, { data: photos }] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from("reviews").select("id, profile_id, rating, would_return, good_value, good_for_party, party_note, loved_it_ages_months, duration_min, body, status, created_at, profiles(display_name)").eq("venue_id", v.id).order("created_at", { ascending: false }),
     supabase.from("venue_stats").select("*").eq("venue_id", v.id).maybeSingle(),
     supabase.from("venue_party_stats").select("*").eq("venue_id", v.id).maybeSingle(),
+    supabase.from("venue_photos").select("id, storage_path, caption, is_community").eq("venue_id", v.id).eq("status", "approved").order("sort_order"),
   ]);
   const myReview = user ? (reviews ?? []).find((r) => r.profile_id === user.id) ?? null : null;
   const publicReviews = (reviews ?? []).filter((r) => r.status === "approved");
@@ -78,6 +79,21 @@ export default async function VenuePage({ params, searchParams }: { params: Prom
       </section>
 
       {v.description && <p className="mt-6 leading-relaxed">{v.description}</p>}
+
+      {photos && photos.length > 0 && (
+        <section className="mt-6">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-ink/50">Photos</h2>
+          <ul className="mt-2 flex snap-x gap-3 overflow-x-auto pb-2">
+            {photos.map((p) => (
+              <li key={p.id} className="w-64 shrink-0 snap-start">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.storage_path} alt={p.caption ?? ""} loading="lazy" className="aspect-[4/3] w-full rounded-2xl object-cover ring-1 ring-ink/10" />
+                {p.caption && <p className="mt-1.5 text-xs leading-snug text-ink/75">{p.caption}</p>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {v.seasonal_notes && <p className="mt-3 rounded-2xl bg-sun/30 p-3 text-sm">{v.seasonal_notes}</p>}
 
       <section className="mt-6">
