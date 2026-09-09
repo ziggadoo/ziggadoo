@@ -5,7 +5,7 @@ import { DEFAULT_START, START_POINTS } from "@/lib/places";
 
 export const dynamic = "force-dynamic";
 
-type Params = { ages?: string; indoor?: string; from?: string };
+type Params = { ages?: string; indoor?: string; from?: string; near?: string; adults?: string };
 
 function parseAges(s: string | undefined): number[] {
   if (!s) return [];
@@ -15,7 +15,11 @@ function parseAges(s: string | undefined): number[] {
 export default async function Home({ searchParams }: { searchParams: Promise<Params> }) {
   const sp = await searchParams;
   const kidAges = parseAges(sp.ages);
-  const start = START_POINTS.find((p) => p.key === sp.from) ?? DEFAULT_START;
+  const nearMatch = sp.from === "near" && sp.near ? sp.near.match(/^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/) : null;
+  const start = nearMatch
+    ? { key: "near", label: "your location", lat: Number(nearMatch[1]), lng: Number(nearMatch[2]) }
+    : (START_POINTS.find((p) => p.key === sp.from) ?? DEFAULT_START);
+  const adults = Math.min(4, Math.max(1, Number(sp.adults) || 1));
   const indoor = sp.indoor === "indoor" || sp.indoor === "outdoor" ? sp.indoor : null;
 
   const supabase = await createClient();
@@ -35,14 +39,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
         <span className="rounded-full bg-sun px-2.5 py-0.5 text-xs font-bold">Preview</span>
       </header>
       <h1 className="mb-4 text-4xl font-extrabold leading-[1.05] tracking-tight">What shall we do today?</h1>
-      <SearchBar ages={sp.ages ?? ""} indoor={sp.indoor ?? ""} from={start.key} />
+      <SearchBar ages={sp.ages ?? ""} indoor={sp.indoor ?? ""} from={start.key} near={nearMatch ? sp.near : ""} adults={adults} />
 
       {error && <p className="mt-6 text-sm text-persimmon">Couldn&apos;t load places: {error.message}</p>}
       <p className="mt-6 text-sm text-ink/60">
-        {rows.length} places from {start.label}{kidAges.length ? `, sorted for ages ${sp.ages}` : ""}. Totals assume 2 adults.
+        {rows.length} places from {start.label}{kidAges.length ? `, sorted for ages ${sp.ages}` : ""}. Totals include {adults} adult{adults > 1 ? "s" : ""} (change in the search box).
       </p>
-      <div className="mt-3 grid gap-3">
-        {rows.map((v) => <VenueCard key={v.id} v={v} kidAges={kidAges} adults={2} tagline={metaById.get(v.id)?.tagline} categories={metaById.get(v.id)?.categories} />)}
+      <div className="mt-3 grid min-w-0 gap-3">
+        {rows.map((v) => <VenueCard key={v.id} v={v} kidAges={kidAges} adults={adults} tagline={metaById.get(v.id)?.tagline} categories={metaById.get(v.id)?.categories} />)}
       </div>
     </main>
   );

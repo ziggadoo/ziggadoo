@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
+import Footer from "@/components/Footer";
 
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", weight: ["400", "500", "600", "700", "800"] });
 
@@ -17,7 +18,7 @@ export const viewport: Viewport = { themeColor: "#f6efe3", width: "device-width"
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={manrope.variable}>
-      <body className="min-h-dvh">{children}</body>
+      <body className="min-h-dvh">{children}<Footer /></body>
     </html>
   );
 }

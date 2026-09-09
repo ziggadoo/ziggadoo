@@ -1,4 +1,4 @@
-// Picks an original ziggadoo illustration for a venue based on its categories. Used until real, licensed photos exist.
+/** Picks an original ziggadoo illustration for a venue based on its categories. Used until real, licensed photos exist. */
 const RULES: [string[], string][] = [
   [["water-play", "splash-pad"], "water-play"],
   [["zoo", "animals", "rainforest"], "animals"],
@@ -10,7 +10,7 @@ const RULES: [string[], string][] = [
   [["cycling", "park"], "cycling"],
   [["nature", "gentle"], "nature"],
   [["soft-play", "toddlers", "indoor-play"], "soft-play"],
-  ];
+];
 
 export function illustrationFor(categories: string[] | null | undefined, heroImageUrl?: string | null): string {
   if (heroImageUrl) return heroImageUrl;
