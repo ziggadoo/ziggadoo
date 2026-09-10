@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { moderate, saveVenue, saveTickets } from "../../actions";
 import { FACILITIES, GOOD_FOR } from "@/lib/goodfor";
 import { TAGLINE_MAX } from "@/lib/venueForm";
+import TicketRows from "@/components/TicketRows";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Edit venue", robots: { index: false } };
@@ -107,18 +108,10 @@ export default async function EditVenue({ params, searchParams }: { params: Prom
       </form>
 
       <h2 id="tickets" className="mt-8 text-sm font-bold uppercase tracking-wide text-ink/50">Tickets ({tickets?.length ?? 0})</h2>
-      <p className="mt-1 text-xs text-ink/60">Separate save button. List price is the door price; Ziggadoo price is what a pass gets. Blank Ziggadoo price = no pass for that ticket.</p>
+      <p className="mt-1 text-xs text-ink/60">Separate save button. List price is the door price. A ticket only gets a &quot;Get pass&quot; button when it has a Ziggadoo price AND passes are switched on for the venue above.</p>
       <form action={saveTickets} className="mt-2 grid gap-2">
         <input type="hidden" name="id" value={v.id} />
-        {[...(tickets ?? []), null, null, null].map((tk, i) => (
-          <div key={tk?.id ?? `new-${i}`} className="grid gap-2 rounded-2xl bg-white p-3 text-sm ring-1 ring-ink/10 sm:grid-cols-6">
-            {tk && <input type="hidden" name={`tt_${i}_id`} value={tk.id} />}
-            <div className="sm:col-span-2"><F name={`tt_${i}_name`} label="Ticket" value={tk?.name} /></div>
-            <div className="sm:col-span-2"><F name={`tt_${i}_description`} label="Included" value={tk?.description} /></div>
-            <F name={`tt_${i}_price`} label="List AED" value={tk?.price_aed} type="number" /><F name={`tt_${i}_zprice`} label="Ziggadoo AED" value={tk?.ziggadoo_price_aed} type="number" />
-            {tk && <div className="sm:col-span-6"><C name={`tt_${i}_remove`} label="Remove" checked={false} /></div>}
-          </div>
-        ))}
+        <TicketRows tickets={tickets ?? []} compact />
         <button className="rounded-xl bg-ink px-4 py-2 font-bold text-oat">Save tickets</button>
       </form>
 

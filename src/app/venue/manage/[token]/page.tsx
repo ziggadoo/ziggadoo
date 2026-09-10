@@ -3,6 +3,7 @@ import { adminClient } from "@/lib/supabase/admin";
 import Logo from "@/components/Logo";
 import { TAGLINE_MAX } from "@/lib/venueForm";
 import { saveSelf, confirmSelf } from "./actions";
+import TicketRows from "@/components/TicketRows";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Edit your listing", robots: { index: false } };
@@ -20,7 +21,6 @@ export default async function ManageVenue({ params, searchParams }: { params: Pr
   if (!v) notFound();
   const { data: tickets } = await db.from("ticket_types").select("id, name, description, price_aed, ziggadoo_price_aed").eq("venue_id", v.id).eq("active", true).order("sort_order");
   const hours = (v.opening_hours ?? {}) as Record<string, string>;
-  const rows = [...(tickets ?? []), ...Array.from({ length: 3 }, () => null)];
 
   return (
     <main className="mx-auto max-w-2xl px-4 pb-16 pt-6 sm:px-6">
@@ -43,16 +43,7 @@ export default async function ManageVenue({ params, searchParams }: { params: Pr
             <fieldset className="grid gap-3 rounded-3xl bg-white/70 p-4 ring-1 ring-ink/10">
               <legend className="px-1 text-lg font-extrabold">Tickets and prices</legend>
               <p className="-mt-1 text-sm text-ink/70">One row per ticket: 1 hour, 2 hours, day pass, annual pass, a class, whatever you sell. List price is what you charge at the door. The Ziggadoo price is what families pay when they show a Ziggadoo pass{v.passes_enabled ? "" : " (passes aren't live for you yet, we'll confirm together)"}; leave it blank if there's no special price.</p>
-              {rows.map((tk, i) => (
-                <div key={tk?.id ?? `new-${i}`} className="grid gap-2 rounded-2xl bg-white p-3 ring-1 ring-ink/10 sm:grid-cols-6">
-                  {tk && <input type="hidden" name={`tt_${i}_id`} value={tk.id} />}
-                  <label className="text-xs font-semibold text-ink/60 sm:col-span-2">Ticket<input name={`tt_${i}_name`} defaultValue={tk?.name ?? ""} placeholder={tk ? "" : "e.g. 2 hour play"} maxLength={50} className={field} /></label>
-                  <label className="text-xs font-semibold text-ink/60 sm:col-span-2">What's included<input name={`tt_${i}_description`} defaultValue={tk?.description ?? ""} placeholder="e.g. one child, socks included" maxLength={90} className={field} /></label>
-                  <label className="text-xs font-semibold text-ink/60">List price AED<input name={`tt_${i}_price`} type="number" inputMode="decimal" defaultValue={tk?.price_aed ?? ""} className={field} /></label>
-                  <label className="text-xs font-semibold text-ink/60">Ziggadoo price<input name={`tt_${i}_zprice`} type="number" inputMode="decimal" defaultValue={tk?.ziggadoo_price_aed ?? ""} className={field} /></label>
-                  {tk && <label className="flex items-center gap-2 text-xs sm:col-span-6"><input type="checkbox" name={`tt_${i}_remove`} value="1" /> Remove this ticket</label>}
-                </div>
-              ))}
+              <TicketRows tickets={tickets ?? []} />
               <label className="text-xs font-semibold text-ink/60">Anything else about prices<textarea name="price_notes" rows={2} defaultValue={v.price_notes ?? ""} className={field} /></label>
             </fieldset>
 

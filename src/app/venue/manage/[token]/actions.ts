@@ -38,6 +38,8 @@ export async function saveSelf(token: string, fd: FormData) {
       if (fd.get(`tt_${i}_remove`) || !name) { await db.from("ticket_types").update({ active: false, updated_at: new Date().toISOString() }).eq("id", id).eq("venue_id", venueId); continue; }
       await db.from("ticket_types").update({ name, description: s(`tt_${i}_description`), price_aed: n(`tt_${i}_price`), ziggadoo_price_aed: n(`tt_${i}_zprice`), sort_order: i, active: true, updated_at: new Date().toISOString() }).eq("id", id).eq("venue_id", venueId);
     } else if (name) {
+      const { data: dup } = await db.from("ticket_types").select("id").eq("venue_id", venueId).eq("active", true).eq("name", name).limit(1);
+      if (dup?.length) continue;
       await db.from("ticket_types").insert({ venue_id: venueId, name, description: s(`tt_${i}_description`), price_aed: n(`tt_${i}_price`), ziggadoo_price_aed: n(`tt_${i}_zprice`), sort_order: i });
     }
   }

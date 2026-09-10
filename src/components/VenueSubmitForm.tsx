@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { SECTIONS, PHOTO_MAX, PHOTO_MIN, type Field, type SubmittedPhoto } from "@/lib/venueForm";
 
@@ -49,6 +49,38 @@ export default function VenueSubmitForm({ action }: { action: (fd: FormData) => 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [batch] = useState(() => crypto.randomUUID());
+  const [needPhoto, setNeedPhoto] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const DRAFT = "zg_venue_form_draft";
+
+  // Keep answers on the device until the form is sent, so nothing is lost on a reload or a validation error.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT);
+      if (!raw || !formRef.current) return;
+      const saved = JSON.parse(raw) as { fields: Record<string, string>; photos?: SubmittedPhoto[] };
+      for (const el of Array.from(formRef.current.elements)) {
+        const input = el as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+        if (!input.name || input.name === "photos" || input.name === "company_website") continue;
+        const v = saved.fields[input.name];
+        if (v == null) continue;
+        if (input instanceof HTMLInputElement && input.type === "checkbox") input.checked = v === "yes";
+        else if (!(input instanceof HTMLInputElement && input.type === "file")) input.value = v;
+      }
+      if (saved.photos?.length) setPhotos(saved.photos);
+    } catch { /* ignore */ }
+  }, []);
+  function saveDraft(nextPhotos?: SubmittedPhoto[]) {
+    if (!formRef.current) return;
+    const fields: Record<string, string> = {};
+    for (const el of Array.from(formRef.current.elements)) {
+      const input = el as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+      if (!input.name || input.name === "photos" || input.name === "company_website") continue;
+      if (input instanceof HTMLInputElement && input.type === "file") continue;
+      fields[input.name] = input instanceof HTMLInputElement && input.type === "checkbox" ? (input.checked ? "yes" : "") : input.value;
+    }
+    try { localStorage.setItem(DRAFT, JSON.stringify({ fields, photos: nextPhotos ?? photos })); } catch { /* ignore */ }
+  }
 
   async function addFiles(files: FileList | null) {
     if (!files?.length) return;
@@ -64,7 +96,7 @@ export default function VenueSubmitForm({ action }: { action: (fd: FormData) => 
         if (error) throw error;
         next.push({ url: `${SUPABASE_URL}/storage/v1/object/public/venue-submissions/${path}`, caption: "" });
       }
-      setPhotos(next);
+      setPhotos(next); saveDraft(next); setNeedPhoto(false);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -73,7 +105,7 @@ export default function VenueSubmitForm({ action }: { action: (fd: FormData) => 
   }
 
   return (
-    <form action={action} className="mt-8 grid gap-8">
+    <form ref={formRef} action={action} onChange={() => saveDraft()} onSubmit={(e) => { if (photos.length < PHOTO_MIN) { e.preventDefault(); setNeedPhoto(true); document.getElementById("photos")?.scrollIntoView({ behavior: "smooth" }); return; } try { localStorage.removeItem(DRAFT); } catch { /* ignore */ } }} className="mt-8 grid gap-8">
       {SECTIONS.map((s) => (
         <fieldset key={s.title} className="grid gap-4 rounded-3xl bg-white/70 p-4 ring-1 ring-ink/10 sm:p-5">
           <legend className="px-1 text-lg font-extrabold tracking-tight">{s.title}</legend>
@@ -82,8 +114,9 @@ export default function VenueSubmitForm({ action }: { action: (fd: FormData) => 
         </fieldset>
       ))}
 
-      <fieldset className="grid gap-4 rounded-3xl bg-white/70 p-4 ring-1 ring-ink/10 sm:p-5">
+      <fieldset id="photos" className={`grid gap-4 rounded-3xl bg-white/70 p-4 ring-1 sm:p-5 ${needPhoto ? "ring-persimmon" : "ring-ink/10"}`}>
         <legend className="px-1 text-lg font-extrabold tracking-tight">Photos</legend>
+        {needPhoto && <p className="rounded-xl bg-persimmon/15 px-3 py-2 text-sm">Please add at least one photo before sending.</p>}
         <p className="-mt-1 text-sm text-ink/70">At least {PHOTO_MIN}, ideally 4 to 7. Your own photos only, showing what children actually do. No identifiable children unless you have their parents&apos; permission. A one-line caption per photo helps a lot.</p>
         <label className="flex cursor-pointer items-center gap-3">
           <span className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold ring-1 ring-ink/20">{busy ? "Uploading…" : "Choose photos"}</span>
@@ -97,8 +130,8 @@ export default function VenueSubmitForm({ action }: { action: (fd: FormData) => 
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={p.url} alt="" className="h-20 w-20 shrink-0 rounded-xl object-cover" />
               <div className="min-w-0 flex-1">
-                <input value={p.caption} onChange={(e) => setPhotos(photos.map((q, j) => j === i ? { ...q, caption: e.target.value } : q))} maxLength={120} placeholder={i === 0 ? "Caption (this one becomes the main image)" : "Caption, e.g. Toddler area for under 2s"} className={field + " mt-0"} />
-                <button type="button" onClick={() => setPhotos(photos.filter((_, j) => j !== i))} className="mt-1 text-xs font-bold text-persimmon">Remove</button>
+                <input value={p.caption} onChange={(e) => { const next = photos.map((q, j) => j === i ? { ...q, caption: e.target.value } : q); setPhotos(next); saveDraft(next); }} maxLength={120} placeholder={i === 0 ? "Caption (this one becomes the main image)" : "Caption, e.g. Toddler area for under 2s"} className={field + " mt-0"} />
+                <button type="button" onClick={() => { const next = photos.filter((_, j) => j !== i); setPhotos(next); saveDraft(next); }} className="mt-1 text-xs font-bold text-persimmon">Remove</button>
               </div>
             </li>
           ))}

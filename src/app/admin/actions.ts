@@ -130,9 +130,12 @@ export async function saveTickets(fd: FormData) {
     if (tid) {
       if (fd.get(`tt_${i}_remove`) || !name) await supabase.from("ticket_types").update({ active: false }).eq("id", tid);
       else await supabase.from("ticket_types").update({ ...row, active: true }).eq("id", tid);
-    } else if (name) await supabase.from("ticket_types").insert({ ...row, venue_id: id });
+    } else if (name) {
+      const { data: dup } = await supabase.from("ticket_types").select("id").eq("venue_id", id).eq("active", true).eq("name", name).limit(1);
+      if (!dup?.length) await supabase.from("ticket_types").insert({ ...row, venue_id: id });
+    }
   }
-  revalidatePath(`/admin/venues/${id}`); revalidatePath(`/v/*`);
+  revalidatePath(`/admin/venues/${id}`);
   redirect(`/admin/venues/${id}?msg=saved#tickets`);
 }
 

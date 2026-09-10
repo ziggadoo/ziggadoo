@@ -13,4 +13,4 @@ export const START_POINTS = [
   { key: "town-square", label: "Town Square", lat: 25.005, lng: 55.29 },
   { key: "warsan", label: "Warsan", lat: 25.16, lng: 55.42 },
 ];
-export const DEFAULT_START = START_POINTS.find((p) => p.key === "jumeirah-park")!;
+export const DEFAULT_START = START_POINTS.find((p) => p.key === "palm")!;
