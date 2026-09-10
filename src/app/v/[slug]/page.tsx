@@ -7,15 +7,24 @@ import type { Metadata } from "next";
 import VenueActions from "@/components/VenueActions";
 import Logo from "@/components/Logo";
 import { ageLabel } from "@/lib/format";
+import { cache } from "react";
+import { getViewer } from "@/lib/supabase/viewer";
+import { aed } from "@/lib/pass";
 
 export const dynamic = "force-dynamic";
+
+// One venue fetch per request, shared by generateMetadata and the page.
+const getVenue = cache(async (slug: string) => {
+  const supabase = await createClient();
+  const { data } = await supabase.from("venues").select("*, locations(name)").eq("slug", slug).maybeSingle();
+  return data;
+});
 
 const DAYS: [string, string][] = [["mon","Mon"],["tue","Tue"],["wed","Wed"],["thu","Thu"],["fri","Fri"],["sat","Sat"],["sun","Sun"]];
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const supabase = await createClient();
-  const { data: v } = await supabase.from("venues").select("name, tagline, area").eq("slug", slug).maybeSingle();
+  const v = await getVenue(slug);
   if (!v) return {};
   const title = `${v.name} in ${v.area}: ages, prices, hours`;
   return { title, description: v.tagline ?? `${v.name}, a kids' activity in ${v.area}, Dubai. Ages, list prices, opening hours and how to book.`, alternates: { canonical: `/v/${slug}` } };
@@ -25,15 +34,18 @@ export default async function VenuePage({ params, searchParams }: { params: Prom
   const { slug } = await params;
   const { msg } = await searchParams;
   const supabase = await createClient();
-  const { data: v } = await supabase.from("venues").select("*, locations(name)").eq("slug", slug).maybeSingle();
+  const v = await getVenue(slug);
   if (!v) notFound();
-  const [{ data: { user } }, { data: reviews }, { data: stats }, { data: party }, { data: photos }] = await Promise.all([
-    supabase.auth.getUser(),
+  const [{ user }, { data: reviews }, { data: stats }, { data: party }, { data: photos }, { data: tickets }] = await Promise.all([
+    getViewer(),
     supabase.from("reviews").select("id, profile_id, rating, would_return, good_value, good_for_party, party_note, loved_it_ages_months, duration_min, body, status, created_at, profiles(display_name)").eq("venue_id", v.id).order("created_at", { ascending: false }),
     supabase.from("venue_stats").select("*").eq("venue_id", v.id).maybeSingle(),
     supabase.from("venue_party_stats").select("*").eq("venue_id", v.id).maybeSingle(),
     supabase.from("venue_photos").select("id, storage_path, caption, is_community").eq("venue_id", v.id).eq("status", "approved").order("sort_order"),
+    supabase.from("ticket_types").select("id, name, description, price_aed, ziggadoo_price_aed").eq("venue_id", v.id).eq("active", true).order("sort_order"),
   ]);
+  const confirmedRecently = v.prices_confirmed_at && Date.now() - new Date(v.prices_confirmed_at).getTime() < 45 * 86400000;
+  const hasPasses = !!v.passes_enabled && (tickets ?? []).some((t) => t.ziggadoo_price_aed != null);
   const myReview = user ? (reviews ?? []).find((r) => r.profile_id === user.id) ?? null : null;
   const publicReviews = (reviews ?? []).filter((r) => r.status === "approved");
   const hours = (v.opening_hours ?? {}) as Record<string, string>;
@@ -76,9 +88,31 @@ export default async function VenuePage({ params, searchParams }: { params: Prom
         <div><p className="text-xs font-bold uppercase tracking-wide text-ink/50">Typical visit</p><p className="font-semibold">{v.typical_duration_min ? `${v.typical_duration_min >= 120 ? Math.round(v.typical_duration_min / 60) + " hours" : v.typical_duration_min + " min"}` : "—"}</p></div>
         {v.price_notes && <p className="text-sm text-ink/70 sm:col-span-2">{v.price_notes}</p>}
         {v.height_note && <p className="text-sm sm:col-span-2"><span className="font-bold">Tip:</span> {v.height_note}</p>}
+        {confirmedRecently && <p className="text-xs font-bold text-cobalt sm:col-span-2">Prices and hours confirmed by the venue {new Date(v.prices_confirmed_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</p>}
         {stats?.review_count ? <p className="text-sm sm:col-span-2"><span className="font-bold">{stats.rating_avg} / 5</span> from {stats.review_count} parent{stats.review_count === 1 ? "" : "s"}{stats.would_return_pct != null ? `, ${stats.would_return_pct}% would go back` : ""}{party?.party_votes ? `, ${party.party_pct}% say good for parties` : ""}</p> : null}
       </section>
 
+      {msg === "nopass" && <p className="mt-4 rounded-2xl bg-sun/40 px-3 py-2 text-sm">Passes aren&apos;t available for that ticket right now.</p>}
+      {tickets && tickets.length > 0 && (
+        <section className="mt-6">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-ink/50">Tickets</h2>
+          {hasPasses && <p className="mt-1 text-sm text-ink/70">Get a free Ziggadoo pass, show it at the door and pay the Ziggadoo price there. Nothing charged, nothing reserved.</p>}
+          <ul className="mt-2 grid gap-2">
+            {tickets.map((t) => (
+              <li key={t.id} className="flex items-center justify-between gap-3 rounded-2xl bg-white p-3 ring-1 ring-ink/10">
+                <div className="min-w-0">
+                  <p className="font-bold">{t.name}</p>
+                  {t.description && <p className="text-xs text-ink/70">{t.description}</p>}
+                  <p className="mt-0.5 text-sm">
+                    {t.ziggadoo_price_aed != null && hasPasses ? <><span className="font-extrabold text-persimmon">{aed(t.ziggadoo_price_aed)}</span>{t.price_aed != null && Number(t.price_aed) !== Number(t.ziggadoo_price_aed) && <span className="ml-1 text-ink/50 line-through">{aed(t.price_aed)}</span>}</> : <span className="font-bold">{aed(t.price_aed) || "Ask the venue"}</span>}
+                  </p>
+                </div>
+                {t.ziggadoo_price_aed != null && hasPasses && <Link href={`/pass/new?venue=${v.slug}&ticket=${t.id}`} className="shrink-0 rounded-xl bg-sun px-3 py-2 text-sm font-extrabold">Get pass</Link>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {v.description && <p className="mt-6 leading-relaxed">{v.description}</p>}
 
       {photos && photos.length > 0 && (

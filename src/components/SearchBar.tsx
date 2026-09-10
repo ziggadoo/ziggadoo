@@ -2,11 +2,16 @@
 
 import { useState } from "react";
 import { START_POINTS } from "@/lib/places";
+import { GOOD_FOR } from "@/lib/goodfor";
 
-export default function SearchBar({ ages, indoor, from, near, adults = 1, homeschool = false }: { ages: string; indoor: string; from: string; near?: string; adults?: number; homeschool?: boolean }) {
+export const AGE_CHIPS: { value: string; label: string }[] = [{ value: "0.5", label: "Under 1" }, ...Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) })), { value: "14", label: "13+" }];
+
+export default function SearchBar({ ages, indoor, from, near, adults = 1, good = "", sort = "best" }: { ages: string; indoor: string; from: string; near?: string; adults?: number; good?: string; sort?: string }) {
   const [locating, setLocating] = useState(false);
   const [coords, setCoords] = useState(near ?? "");
   const [locError, setLocError] = useState("");
+  const [picked, setPicked] = useState<string[]>(ages.split(/[,\s]+/).filter(Boolean));
+  const [where, setWhere] = useState(indoor === "indoor" || indoor === "outdoor" ? indoor : "");
 
   function locate() {
     if (!navigator.geolocation) { setLocError("Location isn't available on this device."); return; }
@@ -17,44 +22,63 @@ export default function SearchBar({ ages, indoor, from, near, adults = 1, homesc
       { timeout: 8000, maximumAge: 300000 },
     );
   }
+  function toggleAge(v: string) { setPicked((p) => p.includes(v) ? p.filter((x) => x !== v) : [...p, v].sort((a, b) => Number(a) - Number(b))); }
 
   const field = "min-w-0 w-full rounded-xl border border-ink/15 bg-white px-3 py-2 text-base font-medium text-ink outline-none focus:border-cobalt";
+  const label = "text-xs font-semibold text-ink/60";
+  const seg = (v: string) => `flex-1 rounded-lg py-1.5 text-center text-sm font-bold transition ${where === v ? "bg-sun text-ink shadow-sm" : "text-ink/60"}`;
+
   return (
-    <form method="get" action="/" className="grid grid-cols-2 gap-2 rounded-3xl bg-white/70 p-3 shadow-sm ring-1 ring-ink/10">
-      <label className="flex min-w-0 flex-col gap-1 text-xs font-semibold text-ink/60">
-        Kids&apos; ages (years)
-        <input name="ages" defaultValue={ages} placeholder="e.g. 2, 6" className={field} />
-      </label>
-      <label className="flex min-w-0 flex-col gap-1 text-xs font-semibold text-ink/60">
-        Adults going
-        <select name="adults" defaultValue={String(adults)} className={field}>
-          {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n}</option>)}
-        </select>
-      </label>
-      <label className="flex min-w-0 flex-col gap-1 text-xs font-semibold text-ink/60">
-        Where
-        <select name="indoor" defaultValue={indoor} className={field}>
-          <option value="">Anywhere</option>
-          <option value="indoor">Indoor</option>
-          <option value="outdoor">Outdoor</option>
-        </select>
-      </label>
-      <label className="flex min-w-0 flex-col gap-1 text-xs font-semibold text-ink/60">
-        Starting from
-        <select name="from" defaultValue={coords ? "near" : from} className={field} onChange={(e) => { if (e.target.value !== "near") setCoords(""); }}>
+    <form method="get" action="/" className="grid gap-3 rounded-3xl bg-white/70 p-3 shadow-sm ring-1 ring-ink/10">
+      <div>
+        <div className="flex items-baseline justify-between"><span className={label}>Kids&apos; ages</span>{picked.length > 0 && <button type="button" onClick={() => setPicked([])} className="text-xs font-bold text-cobalt">Clear</button>}</div>
+        <div className="mt-1 flex flex-wrap gap-1.5">
+          {AGE_CHIPS.map((c) => (
+            <button key={c.value} type="button" onClick={() => toggleAge(c.value)} aria-pressed={picked.includes(c.value)} className={`min-w-9 rounded-full px-2.5 py-1 text-sm font-bold ring-1 transition ${picked.includes(c.value) ? "bg-sun ring-sun" : "bg-white ring-ink/15 text-ink/70"}`}>{c.label}</button>
+          ))}
+        </div>
+        <input type="hidden" name="ages" value={picked.join(",")} />
+        {picked.length === 0 && <p className="mt-1 text-xs text-ink/50">Tap each child&apos;s age. Leave empty to see everything.</p>}
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <span className={label}>Where</span>
+          <div className="mt-1 flex rounded-xl border border-ink/15 bg-white p-1">
+            {[["", "Any"], ["indoor", "Indoor"], ["outdoor", "Outdoor"]].map(([v, l]) => <button key={v} type="button" onClick={() => setWhere(v)} className={seg(v)}>{l}</button>)}
+          </div>
+          <input type="hidden" name="indoor" value={where} />
+        </div>
+        <label className={"flex min-w-0 flex-col gap-1 " + label}>
+          Adults going
+          <select name="adults" defaultValue={String(adults)} className={field}>
+            {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </label>
+      </div>
+
+      <div>
+        <div className="flex items-baseline justify-between">
+          <span className={label}>Starting from</span>
+          <button type="button" onClick={locate} className="text-xs font-bold text-cobalt">{locating ? "Locating…" : coords ? "Using my location ✓" : "Use my location"}</button>
+        </div>
+        <select name="from" defaultValue={coords ? "near" : from} className={field + " mt-1"} onChange={(e) => { if (e.target.value !== "near") setCoords(""); }}>
           {coords && <option value="near">My location</option>}
           {START_POINTS.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
         </select>
-      </label>
-      <input type="hidden" name="near" value={coords} />
-      <label className="col-span-2 flex items-center gap-2 text-sm font-semibold text-ink/80">
-        <input type="checkbox" name="hs" value="1" defaultChecked={homeschool} className="h-4 w-4" /> Great for home schoolers
-      </label>
-      <div className="col-span-2 flex items-center justify-between gap-2">
-        <button type="button" onClick={locate} className="text-sm font-bold text-cobalt">{locating ? "Locating…" : coords ? "Using my location ✓" : "Use my location"}</button>
-        {locError && <span className="text-xs text-persimmon">{locError}</span>}
+        {locError && <p className="mt-1 text-xs text-persimmon">{locError}</p>}
+        <input type="hidden" name="near" value={coords} />
       </div>
-      <button type="submit" className="col-span-2 rounded-xl bg-ink px-4 py-2.5 font-bold text-oat">What shall we do today?</button>
+
+      <label className={"flex min-w-0 flex-col gap-1 " + label}>
+        Good for
+        <select name="good" defaultValue={good} className={field}>
+          <option value="">Everyone</option>
+          {GOOD_FOR.map((g) => <option key={g.key} value={g.key}>{g.label}</option>)}
+        </select>
+      </label>
+      {sort && sort !== "best" && <input type="hidden" name="sort" value={sort} />}
+      <button type="submit" className="rounded-xl bg-ink px-4 py-3 text-base font-bold text-oat">Find activities</button>
     </form>
   );
 }
