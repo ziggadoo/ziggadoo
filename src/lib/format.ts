@@ -34,22 +34,3 @@ export function priceLine(v: Priced): string {
     default: return "";
   }
 }
-
-/** Estimated total for the given kids' ages (months) and adults, or null when it can't be computed. */
-export function familyTotal(v: Priced, kidAges: number[], adults: number): number | null {
-  const child = n(v.price_child_aed);
-  const adult = n(v.price_adult_aed);
-  if (v.price_model === "free") return 0;
-  if (v.price_model === "unknown" || kidAges.length === 0) return null;
-  const payingKids = kidAges.filter((a) => v.free_under_months == null || a >= v.free_under_months);
-  if (v.price_model === "per_child" || v.price_model === "from") {
-    if (child == null) return null;
-    const adultsCost = v.adult_entry_free ? 0 : adult != null ? adult * adults : 0;
-    return child * payingKids.length + adultsCost;
-  }
-  if (v.price_model === "per_person") {
-    if (child == null) return null;
-    return child * payingKids.length + (adult ?? child) * adults;
-  }
-  return null;
-}

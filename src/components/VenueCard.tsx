@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ageRange, familyTotal, priceLine, type Priced } from "@/lib/format";
+import { ageRange, priceLine, type Priced } from "@/lib/format";
 import { illustrationFor } from "@/lib/illustration";
 
 export type SearchRow = Priced & {
@@ -12,8 +12,7 @@ export type SearchRow = Priced & {
 
 const ioLabel = { indoor: "Indoor", outdoor: "Outdoor", mixed: "In & out" } as const;
 
-export default function VenueCard({ v, kidAges, adults, tagline, categories }: { v: SearchRow; kidAges: number[]; adults: number; tagline?: string | null; categories?: string[] | null }) {
-  const total = familyTotal(v, kidAges, adults);
+export default function VenueCard({ v, kidAges, tagline, categories }: { v: SearchRow; kidAges: number[]; tagline?: string | null; categories?: string[] | null }) {
   const fit = kidAges.length === 0 ? null : v.fits_all ? "Fits everyone" : v.fits_count > 0 ? `Fits ${v.fits_count} of ${kidAges.length}` : "Outside their ages";
   const price = priceLine(v);
   const unknown = v.price_model === "unknown";
@@ -34,7 +33,6 @@ export default function VenueCard({ v, kidAges, adults, tagline, categories }: {
         </p>
         <div className="mt-auto flex flex-wrap items-center justify-between gap-x-2 gap-y-1 pt-2">
           <span className={`text-sm ${unknown ? "font-medium text-ink/45" : "font-bold text-ink"}`}>{price}</span>
-          {total != null && <span className="whitespace-nowrap rounded-full bg-persimmon px-2.5 py-0.5 text-xs font-extrabold text-white">{total === 0 ? "Free" : `~AED ${total} family`}</span>}
         </div>
         {fit && <p className={`mt-0.5 text-[11px] font-bold ${v.fits_all ? "text-cobalt" : "text-ink/50"}`}>{fit}</p>}
       </div>
