@@ -97,7 +97,8 @@ export const SECTIONS: Section[] = [
       { key: "gf_sunflower", label: "We are a member of the Hidden Disabilities Sunflower scheme and our staff are trained", type: "checkbox" },
       { key: "gf_coffee-watch", label: "Coffee and watch: our café has a view of the play area", type: "checkbox" },
       { key: "gf_toddler-sessions", label: "We run sessions reserved for under-3s", type: "checkbox" },
-      { key: "gf_rainy-day", label: "We are fully indoor", type: "checkbox" },
+      { key: "gf_rainy-day", label: "We are fully indoor and air-conditioned", type: "checkbox" },
+      { key: "gf_tours", label: "Tours and field trips: we run pre-booked guided visits that families or small groups can join", type: "checkbox" },
     ],
   },
   {

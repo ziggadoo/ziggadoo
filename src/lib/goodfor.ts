@@ -4,7 +4,8 @@ export const GOOD_FOR = [
   { key: "sunflower", label: "Sunflower friendly", note: "Places that recognise the Hidden Disabilities Sunflower lanyard and have told us their staff are trained to support children with hidden disabilities." },
   { key: "coffee-watch", label: "Coffee and watch", note: "Places with a café where you can sit with a coffee and still see the play area." },
   { key: "toddler-sessions", label: "Toddler-only sessions", note: "Places that run sessions reserved for under-3s, away from the big kids." },
-  { key: "rainy-day", label: "Rainy-day picks", note: "Fully indoor places that work when the weather doesn't." },
+  { key: "rainy-day", label: "Great for hot days", note: "Fully indoor, air-conditioned places for when it's too hot to be outside." },
+  { key: "tours", label: "Tours and field trips", note: "Guided visits you book in advance, as a family or a small group, rather than drop in and play. Often the same tours school classes do." },
   { key: "party-venue", label: "Party venues", note: "Places that host birthday parties and have shared their packages with us." },
   { key: "hidden-gem", label: "Hidden gems", note: "Our own picks: less known places we think deserve more love." },
 ] as const;
