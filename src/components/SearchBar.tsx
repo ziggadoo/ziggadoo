@@ -20,12 +20,13 @@ export default function SearchBar({ ages, indoor, from, near, good = "", sort = 
     setLocating(true); setLocError("");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setCoords(`${pos.coords.latitude.toFixed(4)},${pos.coords.longitude.toFixed(4)}`);
-        setFromKey("near");
-        setSortKey("distance");
-        setLocating(false);
-        // Apply straight away so the list re-sorts from where the parent is standing.
-        setTimeout(() => formRef.current?.requestSubmit(), 0);
+        const c = `${pos.coords.latitude.toFixed(4)},${pos.coords.longitude.toFixed(4)}`;
+        setCoords(c); setFromKey("near"); setSortKey("distance"); setLocating(false);
+        // Build the search URL directly from the form and go, so it can't submit stale values.
+        const q = new URLSearchParams();
+        if (formRef.current) { new FormData(formRef.current).forEach((v, k) => { if (typeof v === "string" && v) q.set(k, v); }); }
+        q.set("from", "near"); q.set("near", c); q.set("sort", "distance");
+        window.location.assign(`/?${q.toString()}`);
       },
       () => { setLocError("Couldn't get your location. Pick an area instead."); setLocating(false); },
       { timeout: 8000, maximumAge: 300000 },
