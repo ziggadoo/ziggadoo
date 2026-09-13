@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { moderate, saveVenue, saveTickets } from "../../actions";
+import { moderate, saveVenue, saveTickets, renameReviewer } from "../../actions";
 import { FACILITIES, GOOD_FOR } from "@/lib/goodfor";
 import { TAGLINE_MAX } from "@/lib/venueForm";
 import TicketRows from "@/components/TicketRows";
@@ -29,7 +29,7 @@ export default async function EditVenue({ params, searchParams }: { params: Prom
   const { data: v } = await supabase.from("venues").select("*").eq("id", id).maybeSingle();
   if (!v) notFound();
   const [{ data: reviews }, { data: photos }, { data: tickets }, { data: ll }] = await Promise.all([
-    supabase.from("reviews").select("id, rating, body, status, created_at, value_score, visited_on, profiles(display_name), review_notes(note)").eq("venue_id", id).order("created_at", { ascending: false }),
+    supabase.from("reviews").select("id, rating, body, status, created_at, value_score, visited_on, profile_id, profiles(display_name), review_notes(note)").eq("venue_id", id).order("created_at", { ascending: false }),
     supabase.from("venue_photos").select("id, storage_path, caption, status, is_community").eq("venue_id", id).order("sort_order"),
     supabase.from("ticket_types").select("id, name, description, price_aed, ziggadoo_price_aed").eq("venue_id", id).eq("active", true).order("sort_order"),
     supabase.rpc("venue_latlng", { vid: id }).maybeSingle() as unknown as Promise<{ data: { lat: number; lng: number } | null }>,
@@ -124,7 +124,9 @@ export default async function EditVenue({ params, searchParams }: { params: Prom
       <ul className="mt-2 grid gap-2">
         {reviews?.map((r) => (
           <li key={r.id} className="rounded-2xl bg-white p-3 text-sm ring-1 ring-ink/10">
-            <div className="flex justify-between"><span>{"★".repeat(r.rating)} · {(r.profiles as unknown as { display_name: string | null } | null)?.display_name ?? "?"}</span><span className="text-xs text-ink/50">{new Date(r.created_at).toLocaleDateString("en-GB")}</span></div>
+            <div className="flex items-center justify-between gap-2"><span>{"★".repeat(r.rating)}</span>
+              <form action={renameReviewer} className="flex min-w-0 items-center gap-1 text-xs"><input type="hidden" name="profile_id" value={r.profile_id} /><input type="hidden" name="back" value={`/admin/venues/${id}`} /><input name="display_name" defaultValue={(r.profiles as unknown as { display_name: string | null } | null)?.display_name ?? ""} maxLength={40} placeholder="Shown as" className="w-32 rounded-lg border border-ink/15 px-2 py-1" /><button className="font-bold text-cobalt">Rename</button></form>
+              <span className="text-xs text-ink/50">{new Date(r.created_at).toLocaleDateString("en-GB")}</span></div>
             {(r.visited_on || r.value_score) && <p className="text-xs text-ink/60">{[visitedLabel(r.visited_on) ? `Visited ${visitedLabel(r.visited_on)}` : null, valueLabel(r.value_score)].filter(Boolean).join(" · ")}</p>}
             {r.body && <p className="mt-1">{r.body}</p>}
             {(r.review_notes as unknown as { note: string }[] | null)?.[0]?.note && <p className="mt-1 rounded-xl bg-persimmon/10 px-2 py-1 text-xs"><span className="font-bold">Private note:</span> {(r.review_notes as unknown as { note: string }[])[0].note}</p>}

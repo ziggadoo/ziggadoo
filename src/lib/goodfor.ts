@@ -17,6 +17,7 @@ export function goodFor(key: string | undefined) { return GOOD_FOR.find((g) => g
 export const SORTS = [
   { key: "best", label: "Best match" },
   { key: "distance", label: "Distance" },
+  { key: "rated", label: "Best rated" },
   { key: "price", label: "Price low to high" },
   { key: "name", label: "A to Z" },
 ] as const;

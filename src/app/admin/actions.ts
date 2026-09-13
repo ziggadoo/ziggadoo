@@ -150,3 +150,13 @@ export async function closePassReport(id: string) {
   await supabase.from("pass_reports").delete().eq("id", id);
   revalidatePath("/admin"); redirect("/admin");
 }
+
+/** Admin: change how a reviewer's name shows on the site (e.g. shorten a full name to initials). */
+export async function renameReviewer(fd: FormData) {
+  const { supabase } = await admin();
+  const profileId = String(fd.get("profile_id")); const name = String(fd.get("display_name") ?? "").trim().slice(0, 40) || null;
+  const back = String(fd.get("back") || "/admin");
+  const { error } = await supabase.from("profiles").update({ display_name: name }).eq("id", profileId);
+  revalidatePath(back);
+  redirect(error ? `${back}?msg=${encodeURIComponent(error.message)}` : back);
+}

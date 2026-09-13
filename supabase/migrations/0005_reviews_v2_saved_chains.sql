@@ -12,3 +12,6 @@ create index if not exists venues_chain_idx on venues(chain) where chain is not 
 create table if not exists saved_venues (profile_id uuid not null references profiles(id) on delete cascade, venue_id uuid not null references venues(id) on delete cascade, kind text not null check (kind in ('saved','been')), created_at timestamptz not null default now(), primary key (profile_id, venue_id, kind));
 alter table saved_venues enable row level security;
 create policy "saved own" on saved_venues for all using (auth.uid() = profile_id) with check (auth.uid() = profile_id);
+
+-- 0006 (13 Sept 2026, applied via MCP): curated ages win over community ages in search_venues; party_pct only with >= 4 votes;
+-- is_admin() helper and "profiles admin update" policy; venue_history table + trigger keeping the previous row on every venue change.

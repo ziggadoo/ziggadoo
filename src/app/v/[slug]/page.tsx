@@ -110,7 +110,7 @@ export default async function VenuePage({ params, searchParams }: { params: Prom
         {v.height_note && <p className="text-sm sm:col-span-2"><span className="font-bold">Tip:</span> {v.height_note}</p>}
         {v.pro_tip && <p className="rounded-xl bg-sun/40 px-3 py-2 text-sm sm:col-span-2"><span className="font-bold">Pro tip:</span> {v.pro_tip}</p>}
         {confirmedRecently && <p className="text-xs font-bold text-cobalt sm:col-span-2">Prices and hours confirmed by the venue {new Date(v.prices_confirmed_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</p>}
-        {stats?.review_count ? <p className="text-sm sm:col-span-2"><span className="font-bold">{stats.rating_avg} / 5</span> from {stats.review_count} parent{stats.review_count === 1 ? "" : "s"}{stats.would_return_pct != null ? `, ${stats.would_return_pct}% would go back` : ""}{party?.party_votes ? `, ${party.party_pct}% say good for parties` : ""}</p> : null}
+        {stats?.review_count ? <p className="flex flex-wrap items-center gap-x-2 text-sm sm:col-span-2"><span className="text-lg leading-none text-sun" aria-label={`${stats.rating_avg} out of 5`}>{"★".repeat(Math.round(Number(stats.rating_avg)))}<span className="text-ink/15">{"★".repeat(5 - Math.round(Number(stats.rating_avg)))}</span></span><span className="font-bold">{stats.rating_avg}</span><span className="text-ink/60">({stats.review_count} review{stats.review_count === 1 ? "" : "s"})</span>{party?.party_pct != null ? <span className="text-ink/60">· {party.party_pct}% of {party.party_votes} parents say good for parties</span> : null}</p> : null}
       </section>
 
       {msg === "nopass" && <p className="mt-4 rounded-2xl bg-sun/40 px-3 py-2 text-sm">Passes aren&apos;t available for that ticket right now.</p>}
@@ -177,6 +177,7 @@ export default async function VenuePage({ params, searchParams }: { params: Prom
         {v.phone && <a href={`tel:${v.phone}`} className="rounded-2xl bg-white px-4 py-2.5 font-bold ring-1 ring-ink/15">Call</a>}
         <a href={mapsUrl} target="_blank" rel="noreferrer" className="rounded-2xl bg-white px-4 py-2.5 font-bold ring-1 ring-ink/15">Directions</a>
         {v.website && <a href={v.website} target="_blank" rel="noreferrer" className="rounded-2xl bg-white px-4 py-2.5 font-bold ring-1 ring-ink/15">Website</a>}
+        {v.instagram && <a href={`https://instagram.com/${String(v.instagram).replace(/^@/, "")}`} target="_blank" rel="noreferrer" className="rounded-2xl bg-white px-4 py-2.5 font-bold ring-1 ring-ink/15">Instagram</a>}
       </section>
 
       {branches && branches.length > 0 && (

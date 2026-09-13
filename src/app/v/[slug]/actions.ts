@@ -18,7 +18,7 @@ export async function submitReview(fd: FormData) {
   const slug = String(fd.get("slug"));
   const { supabase, user } = await requireUser(slug, "review");
   const venueId = String(fd.get("venue_id"));
-  const ages = String(fd.get("loved_ages") ?? "").split(/[,\s]+/).map(Number).filter((y) => Number.isFinite(y) && y >= 0 && y <= 18).map((y) => Math.round(y * 12));
+  const ages = String(fd.get("loved_ages") ?? "").split(/[,\s]+/).filter(Boolean).map(Number).filter((y) => Number.isFinite(y) && y >= 0 && y <= 18).map((y) => Math.round(y * 12));
   const rating = Number(fd.get("rating"));
   if (!(rating >= 1 && rating <= 5)) redirect(`/v/${slug}?msg=rating#review`);
   const valueScore = Number(fd.get("value_score")) || null;

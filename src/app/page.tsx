@@ -55,6 +55,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
   }
   if (sort === "distance") rows.sort((a, b) => Number(a.distance_km) - Number(b.distance_km));
   if (sort === "name") rows.sort((a, b) => a.name.localeCompare(b.name));
+  if (sort === "rated") rows.sort((a, b) => (Number(b.rating_avg ?? 0) - Number(a.rating_avg ?? 0)) || (b.review_count - a.review_count) || Number(a.distance_km) - Number(b.distance_km));
   if (sort === "price") rows.sort((a, b) => sortPrice(a) - sortPrice(b) || Number(a.distance_km) - Number(b.distance_km));
 
   const selfQs = new URLSearchParams(Object.entries(sp).filter(([, v]) => !!v) as [string, string][]).toString();
