@@ -1,12 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { START_POINTS } from "@/lib/places";
 import { GOOD_FOR } from "@/lib/goodfor";
 
 export const AGE_CHIPS: { value: string; label: string }[] = [{ value: "0.5", label: "Under 1" }, ...Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) })), { value: "14", label: "13+" }];
 
-export default function SearchBar({ ages, indoor, from, near, good = "", sort = "best" }: { ages: string; indoor: string; from: string; near?: string; good?: string; sort?: string }) {
+export default function SearchBar({ ages, indoor, from, near, good = "", sort = "best", q = "" }: { ages: string; indoor: string; from: string; near?: string; good?: string; sort?: string; q?: string }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [locating, setLocating] = useState(false);
   const [coords, setCoords] = useState(near ?? "");
@@ -14,6 +14,24 @@ export default function SearchBar({ ages, indoor, from, near, good = "", sort = 
   const [sortKey, setSortKey] = useState(sort);
   const [locError, setLocError] = useState("");
   const [picked, setPicked] = useState<string[]>(ages.split(/[,\s]+/).filter(Boolean));
+
+  // Remember the last search on this device; restore it when the home page is opened with no filters.
+  const KEY = "ziggadoo:lastSearch";
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const hasFilters = ["ages", "indoor", "from", "good", "q", "near"].some((k) => params.get(k));
+      if (!hasFilters) {
+        const raw = window.localStorage.getItem(KEY);
+        if (raw) { const saved = new URLSearchParams(raw); if ([...saved.keys()].length) window.location.replace(`/?${saved.toString()}`); }
+      } else {
+        const keep = new URLSearchParams();
+        ["ages", "indoor", "from", "good"].forEach((k) => { const v = params.get(k); if (v && v !== "near") keep.set(k, v); });
+        if (keep.get("from") == null && params.get("from") === "near") keep.delete("from");
+        window.localStorage.setItem(KEY, keep.toString());
+      }
+    } catch { /* private mode etc. */ }
+  }, []);
 
   function locate() {
     if (!navigator.geolocation) { setLocError("Location isn't available on this device."); return; }
@@ -39,6 +57,7 @@ export default function SearchBar({ ages, indoor, from, near, good = "", sort = 
 
   return (
     <form ref={formRef} method="get" action="/" className="grid gap-3 rounded-3xl bg-white/70 p-3 shadow-sm ring-1 ring-ink/10">
+      <input type="search" name="q" defaultValue={q} placeholder="Search a place or activity, e.g. butterfly, trampoline" autoComplete="off" enterKeyHint="search" className={field} />
       <div>
         <div className="flex items-baseline justify-between"><span className={label}>Kids&apos; ages</span>{picked.length > 0 && <button type="button" onClick={() => setPicked([])} className="text-xs font-bold text-cobalt">Clear</button>}</div>
         <div className="mt-1 flex flex-wrap gap-1.5">

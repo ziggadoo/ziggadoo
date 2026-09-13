@@ -27,7 +27,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
   if (me?.role !== "admin") redirect("/");
 
   const [reviews, photos, claims, suggestions, reports, venues, submissions, enquiries, callList, passReports, passes] = await Promise.all([
-    supabase.from("reviews").select("id, rating, body, good_for_party, party_note, loved_it_ages_months, created_at, venues(name, slug), profiles(display_name)").eq("status", "pending").order("created_at"),
+    supabase.from("reviews").select("id, rating, body, good_for_party, party_note, loved_it_ages_months, created_at, value_score, visited_on, venues(name, slug), profiles(display_name), review_notes(note)").eq("status", "pending").order("created_at"),
     supabase.from("venue_photos").select("id, storage_path, caption, created_at, venues(name, slug)").eq("status", "pending").order("created_at"),
     supabase.from("venue_claims").select("id, business_email, evidence, created_at, venues(name, slug, website)").eq("status", "pending").order("created_at"),
     supabase.from("venue_suggestions").select("id, name, area, url, note, created_at").eq("status", "pending").order("created_at"),
@@ -121,6 +121,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
             <div className="flex justify-between"><b>{vname(r.venues)?.name}</b><span>{"★".repeat(r.rating)} · {(r.profiles as unknown as { display_name: string | null } | null)?.display_name ?? "?"}</span></div>
             {r.body && <p className="mt-1">{r.body}</p>}
             {r.good_for_party != null && <p className="mt-1 text-xs">{r.good_for_party ? "Good for parties" : "Not for parties"} {r.party_note}</p>}
+            {(r.review_notes as unknown as { note: string }[] | null)?.[0]?.note && <p className="mt-1 rounded-xl bg-persimmon/10 px-2 py-1 text-xs"><span className="font-bold">Private note:</span> {(r.review_notes as unknown as { note: string }[])[0].note}</p>}
             <div className="mt-2"><Buttons kind="review" id={r.id} /></div>
           </div>
         ))}

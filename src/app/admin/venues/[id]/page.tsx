@@ -5,6 +5,8 @@ import { moderate, saveVenue, saveTickets } from "../../actions";
 import { FACILITIES, GOOD_FOR } from "@/lib/goodfor";
 import { TAGLINE_MAX } from "@/lib/venueForm";
 import TicketRows from "@/components/TicketRows";
+import HeroUpload from "@/components/HeroUpload";
+import { valueLabel, visitedLabel } from "@/lib/review";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Edit venue", robots: { index: false } };
@@ -27,7 +29,7 @@ export default async function EditVenue({ params, searchParams }: { params: Prom
   const { data: v } = await supabase.from("venues").select("*").eq("id", id).maybeSingle();
   if (!v) notFound();
   const [{ data: reviews }, { data: photos }, { data: tickets }, { data: ll }] = await Promise.all([
-    supabase.from("reviews").select("id, rating, body, status, created_at, profiles(display_name)").eq("venue_id", id).order("created_at", { ascending: false }),
+    supabase.from("reviews").select("id, rating, body, status, created_at, value_score, visited_on, profiles(display_name), review_notes(note)").eq("venue_id", id).order("created_at", { ascending: false }),
     supabase.from("venue_photos").select("id, storage_path, caption, status, is_community").eq("venue_id", id).order("sort_order"),
     supabase.from("ticket_types").select("id, name, description, price_aed, ziggadoo_price_aed").eq("venue_id", id).eq("active", true).order("sort_order"),
     supabase.rpc("venue_latlng", { vid: id }).maybeSingle() as unknown as Promise<{ data: { lat: number; lng: number } | null }>,
@@ -69,6 +71,9 @@ export default async function EditVenue({ params, searchParams }: { params: Prom
         <F name="age_min_months" label="Age min (months)" value={v.age_min_months} type="number" /><F name="age_max_months" label="Age max (months)" value={v.age_max_months} type="number" />
         <F name="best_age_min_months" label="Best from (months)" value={v.best_age_min_months} type="number" /><F name="best_age_max_months" label="Best to (months)" value={v.best_age_max_months} type="number" />
         <div className="sm:col-span-2"><F name="height_note" label="Height / age tip shown on listing" value={v.height_note} /></div>
+        <div className="sm:col-span-2"><F name="pro_tip" label="Pro tip (one line, shown highlighted, e.g. main attraction needs 130cm even though younger kids are admitted)" value={v.pro_tip} maxLength={160} /></div>
+        <label className="text-xs font-semibold text-ink/60 sm:col-span-2">Good to know (free text for this branch: parking, stroller access, café, quiet times)<textarea name="good_to_know" rows={3} defaultValue={v.good_to_know ?? ""} className={field + " mt-1"} /></label>
+        <div className="sm:col-span-2"><F name="chain" label="Chain (same name on every branch links them together, e.g. Orange Wheels)" value={v.chain} /></div>
         <label className="text-xs font-semibold text-ink/60">Price model<select name="price_model" defaultValue={v.price_model} className={field + " mt-1"}>{["free","per_child","per_person","per_family","from","unknown"].map((o) => <option key={o} value={o}>{o}</option>)}</select></label>
         <label className="text-xs font-semibold text-ink/60">Adults free?<select name="adult_entry_free" defaultValue={v.adult_entry_free == null ? "" : String(v.adult_entry_free)} className={field + " mt-1"}><option value="">unknown</option><option value="true">yes</option><option value="false">no</option></select></label>
         <F name="price_child_aed" label="Child price AED" value={v.price_child_aed} type="number" /><F name="price_adult_aed" label="Adult price AED" value={v.price_adult_aed} type="number" />
@@ -79,7 +84,7 @@ export default async function EditVenue({ params, searchParams }: { params: Prom
         <F name="booking_url" label="Booking URL" value={v.booking_url} />
         <F name="whatsapp" label="WhatsApp (+971...)" value={v.whatsapp} /><F name="phone" label="Phone" value={v.phone} />
         <F name="website" label="Website" value={v.website} /><F name="instagram" label="Instagram handle" value={v.instagram} />
-        <div className="sm:col-span-2"><F name="hero_image_url" label="Main image URL (leave blank for illustration)" value={v.hero_image_url} /></div>
+        <div className="grid gap-2 sm:col-span-2"><HeroUpload venueId={v.id} current={v.hero_image_url} /><F name="hero_image_url" label="Main image URL (filled by the upload above, or paste one; blank for illustration)" value={v.hero_image_url} /></div>
         <label className="text-xs font-semibold text-ink/60 sm:col-span-2">Opening hours JSON ({`{"mon":"10:00-22:00",...}`} or {`{"note":"..."}`})<textarea name="opening_hours" rows={2} defaultValue={JSON.stringify(v.opening_hours)} className={field + " mt-1 font-mono text-xs"} /></label>
         <label className="text-xs font-semibold text-ink/60 sm:col-span-2">Seasonal notes<textarea name="seasonal_notes" rows={2} defaultValue={v.seasonal_notes ?? ""} className={field + " mt-1"} /></label>
         <fieldset className="grid gap-3 rounded-2xl bg-white p-3 ring-1 ring-ink/10 sm:col-span-2 sm:grid-cols-2">
@@ -120,7 +125,9 @@ export default async function EditVenue({ params, searchParams }: { params: Prom
         {reviews?.map((r) => (
           <li key={r.id} className="rounded-2xl bg-white p-3 text-sm ring-1 ring-ink/10">
             <div className="flex justify-between"><span>{"★".repeat(r.rating)} · {(r.profiles as unknown as { display_name: string | null } | null)?.display_name ?? "?"}</span><span className="text-xs text-ink/50">{new Date(r.created_at).toLocaleDateString("en-GB")}</span></div>
+            {(r.visited_on || r.value_score) && <p className="text-xs text-ink/60">{[visitedLabel(r.visited_on) ? `Visited ${visitedLabel(r.visited_on)}` : null, valueLabel(r.value_score)].filter(Boolean).join(" · ")}</p>}
             {r.body && <p className="mt-1">{r.body}</p>}
+            {(r.review_notes as unknown as { note: string }[] | null)?.[0]?.note && <p className="mt-1 rounded-xl bg-persimmon/10 px-2 py-1 text-xs"><span className="font-bold">Private note:</span> {(r.review_notes as unknown as { note: string }[])[0].note}</p>}
             <div className="mt-2"><Mod kind="review" itemId={r.id} status={r.status} /></div>
           </li>
         ))}

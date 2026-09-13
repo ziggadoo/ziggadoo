@@ -51,7 +51,7 @@ export async function moderate(boundDecision: string, fd: FormData) {
 }
 
 const NUM = ["price_child_aed", "price_adult_aed", "age_min_months", "age_max_months", "best_age_min_months", "best_age_max_months", "free_under_months", "typical_duration_min"];
-const TEXT = ["name", "tagline", "description", "area", "address", "price_model", "price_notes", "height_note", "booking", "booking_url", "whatsapp", "phone", "website", "instagram", "seasonal_notes", "hero_image_url", "status", "indoor_outdoor"];
+const TEXT = ["name", "tagline", "description", "area", "address", "price_model", "price_notes", "height_note", "booking", "booking_url", "whatsapp", "phone", "website", "instagram", "seasonal_notes", "hero_image_url", "status", "indoor_outdoor", "good_to_know", "pro_tip", "chain"];
 
 export async function saveVenue(fd: FormData) {
   const { supabase, user } = await admin();
