@@ -97,7 +97,9 @@ export default function PhotoManager({ venueId, slug, venueName, hero, photos }:
   // ---- add photos: each goes through the cropper (or auto centre crop), then storage, then a venue_photos row.
   function pick(list: FileList | null) {
     if (!list?.length) return;
-    setQueue((q) => [...q, ...Array.from(list).map((file) => ({ file, name: file.name }))]);
+    // Copy the files out now: a FileList is live and is emptied when the input is reset below.
+    const files = Array.from(list).map((file) => ({ file, name: file.name }));
+    setQueue((q) => [...q, ...files]);
   }
   const [preparing, setPreparing] = useState("");
   useEffect(() => {
