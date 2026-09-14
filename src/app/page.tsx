@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import SearchBar from "@/components/SearchBar";
 import VenueCard, { type SearchRow } from "@/components/VenueCard";
 import { DEFAULT_START, START_POINTS } from "@/lib/places";
-import { goodFor, SORTS, type SortKey } from "@/lib/goodfor";
+import { goodFor, isNearlyFree, GOOD_FOR, SORTS, type SortKey } from "@/lib/goodfor";
+import SortSelect from "@/components/SortSelect";
 import Logo from "@/components/Logo";
 import { getViewer } from "@/lib/supabase/viewer";
 
@@ -39,9 +40,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
   const { data: savedRows } = user ? await supabase.from("saved_venues").select("venue_id").eq("profile_id", user.id).eq("kind", "saved") : { data: [] as { venue_id: string }[] };
   const savedIds = new Set((savedRows ?? []).map((r) => r.venue_id));
   const { data, error } = await supabase.rpc("search_venues", {
-    p_lat: start.lat, p_lng: start.lng, p_radius_km: 60, p_child_ages: kidAges, p_indoor: indoor, p_categories: good ? [good.key] : null, p_limit: 80,
+    p_lat: start.lat, p_lng: start.lng, p_radius_km: 60, p_child_ages: kidAges, p_indoor: indoor, p_categories: good && good.key !== "free" ? [good.key] : null, p_limit: 80,
   });
   let rows = [...((data ?? []) as SearchRow[])];
+  if (good?.key === "free") rows = rows.filter(isNearlyFree);
   const q = (sp.q ?? "").trim().toLowerCase();
   if (q) {
     const words = q.split(/\s+/).filter(Boolean);
@@ -60,13 +62,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
 
   const selfQs = new URLSearchParams(Object.entries(sp).filter(([, v]) => !!v) as [string, string][]).toString();
   const backHref = selfQs ? `/?${selfQs}` : "/";
-  const sortHref = (key: string) => {
+  const withParam = (name: string, value: string) => {
     const q = new URLSearchParams();
-    Object.entries(sp).forEach(([k, v]) => { if (v && k !== "sort") q.set(k, v); });
-    if (key !== "best") q.set("sort", key);
+    Object.entries(sp).forEach(([k, v]) => { if (v && k !== name && k !== "hs") q.set(k, v); });
+    if (value) q.set(name, value);
     const qs = q.toString();
     return qs ? `/?${qs}` : "/";
   };
+  const sortHrefs = Object.fromEntries(SORTS.map((s) => [s.key, withParam("sort", s.key === "best" ? "" : s.key)]));
+  const pill = (on: boolean) => `rounded-full px-3 py-1.5 text-sm font-bold ring-1 transition ${on ? "bg-sun ring-sun" : "bg-white ring-ink/15 text-ink/70"}`;
 
   return (
     <main className="mx-auto max-w-2xl px-4 pb-16 pt-6 sm:px-6">
@@ -78,17 +82,17 @@ export default async function Home({ searchParams }: { searchParams: Promise<Par
       <SearchBar ages={sp.ages ?? ""} indoor={sp.indoor ?? ""} from={start.key} near={nearMatch ? sp.near : ""} good={good?.key ?? ""} sort={sort} q={sp.q ?? ""} />
 
       {error && <p className="mt-6 text-sm text-persimmon">Couldn&apos;t load places: {error.message}</p>}
-      {good && <p className="mt-5 rounded-2xl bg-sun/30 px-3 py-2 text-sm"><span className="font-bold">{good.label}.</span> {good.note}</p>}
+      <nav aria-label="Good for" className="mt-5 flex flex-wrap gap-1.5">
+        <Link href={withParam("good", "")} scroll={false} className={pill(!good)}>Everything</Link>
+        {GOOD_FOR.map((g) => <Link key={g.key} href={withParam("good", g.key)} scroll={false} className={pill(good?.key === g.key)}>{g.label}</Link>)}
+      </nav>
+      {good && <p className="mt-2 rounded-2xl bg-sun/30 px-3 py-2 text-sm">{good.note}</p>}
 
-      <div className="mt-5 flex items-center justify-between gap-3">
+      <div className="mt-4 flex items-center justify-between gap-3">
         <p className="min-w-0 text-sm text-ink/60">
           {rows.length} places{q ? ` matching "${sp.q?.trim()}"` : ""} from {start.label}{kidAges.length ? `, for ${kidAges.map((m) => m < 12 ? "under 1" : m >= 168 ? "13+" : String(Math.round(m / 12))).join(", ")}` : ""}.
         </p>
-      </div>
-      <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1 text-xs font-bold">
-        {SORTS.map((s) => (
-          <Link key={s.key} href={sortHref(s.key)} scroll={false} className={`shrink-0 rounded-full px-3 py-1 ring-1 ${sort === s.key ? "bg-sun ring-sun" : "bg-white ring-ink/15 text-ink/70"}`}>{s.label}</Link>
-        ))}
+        <SortSelect sort={sort} hrefs={sortHrefs} />
       </div>
       <div className="mt-3 grid min-w-0 gap-3">
         {rows.map((v) => <VenueCard key={v.id} v={v} kidAges={kidAges} tagline={v.tagline} categories={v.categories} saved={savedIds.has(v.id)} signedIn={!!user} back={backHref} />)}

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { START_POINTS } from "@/lib/places";
-import { GOOD_FOR } from "@/lib/goodfor";
 
 export const AGE_CHIPS: { value: string; label: string }[] = [{ value: "0.5", label: "Under 1" }, ...Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) })), { value: "14", label: "13+" }];
 
@@ -69,23 +68,15 @@ export default function SearchBar({ ages, indoor, from, near, good = "", sort = 
         {picked.length === 0 && <p className="mt-1 text-xs text-ink/50">Tap each child&apos;s age. Leave empty to see everything.</p>}
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <label className={"flex min-w-0 flex-col gap-1 " + label}>
-          Where
-          <select name="indoor" defaultValue={indoor === "indoor" || indoor === "outdoor" ? indoor : ""} className={field}>
-            <option value="">Indoor or outdoor</option>
-            <option value="indoor">Indoor</option>
-            <option value="outdoor">Outdoor</option>
-          </select>
-        </label>
-        <label className={"flex min-w-0 flex-col gap-1 " + label}>
-          Good for
-          <select name="good" defaultValue={good} className={field}>
-            <option value="">Everyone</option>
-            {GOOD_FOR.map((g) => <option key={g.key} value={g.key}>{g.label}</option>)}
-          </select>
-        </label>
-      </div>
+      <label className={"flex min-w-0 flex-col gap-1 " + label}>
+        Where
+        <select name="indoor" defaultValue={indoor === "indoor" || indoor === "outdoor" ? indoor : ""} className={field}>
+          <option value="">Indoor or outdoor</option>
+          <option value="indoor">Indoor</option>
+          <option value="outdoor">Outdoor</option>
+        </select>
+      </label>
+      {good && <input type="hidden" name="good" value={good} />}
 
       <div>
         <div className="flex items-baseline justify-between">

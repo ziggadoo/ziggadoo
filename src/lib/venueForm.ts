@@ -93,12 +93,11 @@ export const SECTIONS: Section[] = [
     title: "Good for",
     intro: "These become filters parents use. Only tick what's true today.",
     fields: [
-      { key: "gf_homeschool", label: "Homeschoolers: we run or welcome weekday daytime sessions for learning groups", type: "checkbox" },
+      { key: "gf_homeschool", label: "Homeschoolers: we run or welcome weekday daytime sessions for learning groups, or pre-booked guided visits and field trips that families or small groups can join", type: "checkbox" },
       { key: "gf_sunflower", label: "We are a member of the Hidden Disabilities Sunflower scheme and our staff are trained", type: "checkbox" },
       { key: "gf_coffee-watch", label: "Coffee and watch: our café has a view of the play area", type: "checkbox" },
       { key: "gf_toddler-sessions", label: "We run sessions reserved for under-3s", type: "checkbox" },
       { key: "gf_rainy-day", label: "We are fully indoor and air-conditioned", type: "checkbox" },
-      { key: "gf_tours", label: "Tours and field trips: we run pre-booked guided visits that families or small groups can join", type: "checkbox" },
     ],
   },
   {
@@ -146,7 +145,7 @@ export function toVenuePatch(d: Record<string, string>, photos: SubmittedPhoto[]
   const facilities: Record<string, boolean> = {};
   for (const f of FACILITIES) if (yes(`fac_${f.key}`)) facilities[f.key] = true;
   const categories: string[] = [];
-  for (const g of GOOD_FOR) if (yes(`gf_${g.key}`)) categories.push(g.key);
+  for (const g of GOOD_FOR) if (g.key !== "free" && yes(`gf_${g.key}`)) categories.push(g.key);
   if (yes("party_hosts") && yes("party_prices_ok") && num("party_starter_price") != null) categories.push("party-venue");
   const priceModel = d.price_model === "classes" ? "unknown" : (d.price_model || "unknown");
   const party = yes("party_hosts") ? {

@@ -24,13 +24,14 @@ const n = (v: number | string | null) => (v == null ? null : Number(v));
 export function priceLine(v: Priced): string {
   const child = n(v.price_child_aed);
   const adult = n(v.price_adult_aed);
+  const adults = v.adult_entry_free ? ". Adult included in child pass" : adult != null ? `, adults ${adult} AED` : "";
   switch (v.price_model) {
     case "free": return "Free entry";
     case "unknown": return "Price not confirmed";
-    case "from": return child != null ? `From AED ${child}` : "Price varies";
-    case "per_child": return child != null ? `AED ${child} per child${v.adult_entry_free ? ", adults free" : adult != null ? `, adults AED ${adult}` : ""}` : "Per child";
-    case "per_person": return child != null && adult != null && child !== adult ? `AED ${child} child, AED ${adult} adult` : child != null ? `AED ${child} per person` : "Per person";
-    case "per_family": return adult != null ? `AED ${adult} per family` : "Per family";
+    case "from": return child != null ? `Starting at ${child} AED` : "Price varies";
+    case "per_child": return child != null ? `Starting at ${child} AED per child${adults}` : "Per child";
+    case "per_person": return child != null && adult != null && child !== adult ? `${child} AED child, ${adult} AED adult` : child != null ? `Starting at ${child} AED per person` : "Per person";
+    case "per_family": return adult != null ? `${adult} AED per family` : "Per family";
     default: return "";
   }
 }

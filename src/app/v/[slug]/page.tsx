@@ -5,6 +5,7 @@ import { ageRange, priceLine } from "@/lib/format";
 import { illustrationFor } from "@/lib/illustration";
 import type { Metadata } from "next";
 import VenueActions from "@/components/VenueActions";
+import Gallery from "@/components/Gallery";
 import { valueLabel, visitedLabel } from "@/lib/review";
 import { toggleSaved } from "./actions";
 import Logo from "@/components/Logo";
@@ -59,6 +60,13 @@ export default async function VenuePage({ params, searchParams }: { params: Prom
   const myReview = user ? (reviews ?? []).find((r) => r.profile_id === user.id) ?? null : null;
   const publicReviews = (reviews ?? []).filter((r) => r.status === "approved");
   const hours = (v.opening_hours ?? {}) as Record<string, string>;
+  // Venue and admin photos (the carousel): main image first, then the rest in order. Parent photos stay in their own section.
+  const noV = (u: string) => u.replace(/\?v=\d+$/, "");
+  const venuePhotos = (photos ?? []).filter((p) => !p.is_community);
+  const official: { url: string; caption?: string | null }[] = [];
+  if (v.hero_image_url) official.push({ url: v.hero_image_url, caption: venuePhotos.find((p) => noV(p.storage_path) === noV(v.hero_image_url))?.caption ?? null });
+  venuePhotos.forEach((p) => { if (!official.some((o) => noV(o.url) === noV(p.storage_path))) official.push({ url: p.storage_path, caption: p.caption }); });
+  const parentPhotos = (photos ?? []).filter((p) => p.is_community);
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.name + " " + (v.address ?? "Dubai"))}`;
   const wa = v.whatsapp ? `https://wa.me/${String(v.whatsapp).replace(/\D/g, "")}` : null;
 
@@ -71,6 +79,7 @@ export default async function VenuePage({ params, searchParams }: { params: Prom
     telephone: v.phone ?? undefined,
     sameAs: v.website ? [v.website] : undefined,
     address: { "@type": "PostalAddress", streetAddress: v.address ?? undefined, addressLocality: "Dubai", addressCountry: "AE" },
+    image: official.length ? official.map((o) => o.url) : undefined,
     isAccessibleForFree: v.price_model === "free",
     priceRange: v.price_child_aed ? `AED ${v.price_child_aed}` : undefined,
     openingHours: DAYS.filter(([k]) => hours[k]).map(([k, l]) => `${l.slice(0, 2)} ${hours[k]}`),
@@ -91,8 +100,10 @@ export default async function VenuePage({ params, searchParams }: { params: Prom
         ))}
         {user && <Link href="/saved" className="ml-auto self-center text-cobalt">My places →</Link>}
       </div>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={illustrationFor(v.categories, v.hero_image_url)} alt="" className="mt-4 aspect-[2/1] w-full rounded-3xl object-cover ring-1 ring-ink/10" />
+      {official.length > 0
+        ? <Gallery images={official} name={v.name} />
+        /* eslint-disable-next-line @next/next/no-img-element */
+        : <img src={illustrationFor(v.categories, null)} alt="" className="mt-4 aspect-[2/1] w-full rounded-3xl object-cover ring-1 ring-ink/10" />}
       <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
         <span className="rounded-full bg-cobalt/10 px-2.5 py-1 text-cobalt">{v.indoor_outdoor === "mixed" ? "Indoor & outdoor" : v.indoor_outdoor[0].toUpperCase() + v.indoor_outdoor.slice(1)}</span>
         {v.locations?.name && <span className="rounded-full bg-ink/5 px-2.5 py-1">{v.locations.name}</span>}
@@ -142,11 +153,11 @@ export default async function VenuePage({ params, searchParams }: { params: Prom
         </section>
       )}
 
-      {photos && photos.length > 0 && (
+      {parentPhotos.length > 0 && (
         <section className="mt-6">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-ink/50">Photos</h2>
+          <h2 className="text-sm font-bold uppercase tracking-wide text-ink/50">Photos from parents</h2>
           <ul className="mt-2 flex snap-x gap-3 overflow-x-auto pb-2">
-            {photos.map((p) => (
+            {parentPhotos.map((p) => (
               <li key={p.id} className="w-64 shrink-0 snap-start">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={p.storage_path} alt={p.caption ?? ""} loading="lazy" className="aspect-[4/3] w-full rounded-2xl object-cover ring-1 ring-ink/10" />
