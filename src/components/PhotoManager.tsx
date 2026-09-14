@@ -99,16 +99,21 @@ export default function PhotoManager({ venueId, slug, venueName, hero, photos }:
     if (!list?.length) return;
     setQueue((q) => [...q, ...Array.from(list).map((file) => ({ file, name: file.name }))]);
   }
+  const [preparing, setPreparing] = useState("");
   useEffect(() => {
-    if (!queue.length || crop || busy) return;
+    if (!queue.length || crop || busy || preparing) return;
     const next = queue[0];
+    setPreparing(next.name); setErr("");
     (async () => {
       try {
         const bitmap = await loadBitmap(next.file);
         setCrop({ bitmap, title: `Crop ${next.name}`, onDone: async (blob) => { setCrop(null); await addPhoto(blob); setQueue((q) => q.slice(1)); } });
-      } catch (e) { setErr(e instanceof Error ? e.message : String(e)); setQueue((q) => q.slice(1)); }
+      } catch (e) {
+        console.error("Photo could not be prepared", e);
+        setErr(`${next.name}: ${e instanceof Error ? e.message : String(e)}`); setQueue((q) => q.slice(1));
+      } finally { setPreparing(""); }
     })();
-  }, [queue, crop, busy]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [queue, crop, busy, preparing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function addPhoto(blob: Blob) {
     await run("Uploading…", async () => {
@@ -209,10 +214,11 @@ export default function PhotoManager({ venueId, slug, venueName, hero, photos }:
     <section className="rounded-2xl bg-white/60 p-3 ring-1 ring-ink/10 sm:col-span-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-bold uppercase tracking-wide text-ink/50">Photos on this listing</p>
-        <label className={`cursor-pointer rounded-xl bg-ink px-3 py-2 text-xs font-bold text-oat ${busy ? "opacity-50" : ""}`}>{busy || "Add photos"}<input type="file" accept="image/*" multiple disabled={!!busy} onChange={(e) => { pick(e.target.files); e.target.value = ""; }} className="sr-only" /></label>
+        <label className={`cursor-pointer rounded-xl bg-ink px-3 py-2 text-xs font-bold text-oat ${busy || preparing ? "opacity-50" : ""}`}>{busy || (preparing ? "Preparing…" : "Add photos")}<input type="file" accept="image/*,.heic,.heif" multiple disabled={!!busy || !!preparing} onChange={(e) => { pick(e.target.files); e.target.value = ""; }} className="sr-only" /></label>
       </div>
       <p className="mt-1 text-xs text-ink/60">Each new photo gets a 3:2 crop, is saved as 1200 × 800 JPEG and named {slug}-1.jpg, {slug}-2.jpg and so on. Changes here save immediately. The first photo becomes the main image if there isn&apos;t one.</p>
-      {err && <p className="mt-2 text-xs text-persimmon">{err}</p>}
+      {err && <p className="mt-2 rounded-xl bg-persimmon/10 px-3 py-2 text-sm font-bold text-persimmon">{err}</p>}
+      {preparing && <p className="mt-2 text-sm font-bold text-cobalt">Preparing {preparing}…</p>}
       {queue.length > 0 && <p className="mt-2 text-xs text-ink/60">{queue.length} photo{queue.length === 1 ? "" : "s"} waiting to be cropped.</p>}
       <ul className="mt-2 grid gap-2">{official.map((it, i) => row(it, i, official))}</ul>
       {official.length === 0 && <p className="mt-2 text-xs text-ink/50">No venue photos yet. The listing shows an illustration.</p>}

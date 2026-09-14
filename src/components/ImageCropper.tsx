@@ -6,12 +6,29 @@ export const OUT_W = 1200;
 export const OUT_H = 800;
 export const JPEG_QUALITY = 0.82;
 
-/** Loads any image source (File or public URL) into a bitmap the canvas can read. */
+/** Loads any image source (File or public URL) into a bitmap the canvas can read.
+ *  Tries createImageBitmap first (respects EXIF rotation), then falls back to an <img> decode, which handles more formats on Safari. */
 export async function loadBitmap(src: File | string): Promise<ImageBitmap> {
-  if (typeof src !== "string") return createImageBitmap(src);
-  const res = await fetch(src, { mode: "cors", cache: "no-store" });
-  if (!res.ok) throw new Error("Couldn't load the image for cropping.");
-  return createImageBitmap(await res.blob());
+  let blob: Blob;
+  if (typeof src === "string") {
+    const res = await fetch(src, { mode: "cors", cache: "no-store" });
+    if (!res.ok) throw new Error("Couldn't load the image for cropping.");
+    blob = await res.blob();
+  } else blob = src;
+  try {
+    return await createImageBitmap(blob, { imageOrientation: "from-image" });
+  } catch (first) {
+    const url = URL.createObjectURL(blob);
+    try {
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      return await createImageBitmap(img);
+    } catch {
+      const name = typeof src === "string" ? "this image" : src.name;
+      throw new Error(`Your browser can't read ${name}${/\.hei[cf]$/i.test(name) ? " (HEIC). Export it as JPEG first, or upload from an iPhone or Mac" : ""}. ${first instanceof Error ? first.message : ""}`.trim());
+    } finally { URL.revokeObjectURL(url); }
+  }
 }
 
 /** Centre crop to 3:2 and encode as JPEG. Used when the admin skips the crop step. */
