@@ -32,7 +32,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
     supabase.from("venue_claims").select("id, business_email, evidence, created_at, venues(name, slug, website)").eq("status", "pending").order("created_at"),
     supabase.from("venue_suggestions").select("id, name, area, url, note, created_at").eq("status", "pending").order("created_at"),
     supabase.from("reports").select("id, kind, note, created_at, venues(name, slug)").eq("status", "open").order("created_at"),
-    supabase.from("venues").select("id, name, area, status, price_model, last_verified_at").ilike("name", q ? `%${q}%` : "%").order("name").limit(300),
+    supabase.from("venues").select("id, name, area, status, price_model, last_verified_at, admin_edited_at, hero_image_url, venue_photos(count)").ilike("name", q ? `%${q}%` : "%").order("name").limit(300),
     supabase.from("venue_submissions").select("id, venue_name, contact_name, contact_whatsapp, contact_email, data, photos, created_at").eq("status", "pending").order("created_at"),
     supabase.from("venue_enquiries").select("id, name, venue_name, whatsapp, email, message, created_at").eq("status", "open").order("created_at"),
     supabase.from("venues").select("id, name, contact_name, contact_whatsapp, contact_email, prices_confirmed_at").eq("needs_call", true).order("name"),
@@ -170,11 +170,18 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
 
       <h1 className="mt-10 text-3xl font-extrabold tracking-tight">Venues</h1>
       <form method="get" className="mt-3 flex gap-2"><input name="q" defaultValue={q ?? ""} placeholder="Search by name" className="min-w-0 flex-1 rounded-xl border border-ink/15 bg-white px-3 py-2" /><button className="rounded-xl bg-ink px-4 py-2 font-bold text-oat">Find</button></form>
-      <p className="mt-2 text-xs text-ink/50">{venues.data?.length ?? 0} venues{q ? ` matching "${q}"` : ""}. Orange dot = no confirmed price.</p>
+      <p className="mt-2 text-xs text-ink/50">{venues.data?.length ?? 0} venues{q ? ` matching "${q}"` : ""}. Orange dot = no confirmed price. Blue dot = has a real photo. Green dot = edited by admin.</p>
       <ul className="mt-2 grid gap-1">
         {venues.data?.map((v) => (
           <li key={v.id} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm ring-1 ring-ink/10">
-            <span>{v.price_model === "unknown" && <span className="mr-1 inline-block h-2 w-2 rounded-full bg-persimmon" />}<b>{v.name}</b> <span className="text-ink/50">· {v.area}{v.status !== "verified" ? ` · ${v.status}` : ""}{v.last_verified_at ? " · checked" : ""}</span></span>
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span className="flex shrink-0 gap-1">
+                <span className={`inline-block h-2 w-2 rounded-full ${v.price_model === "unknown" ? "bg-persimmon" : "bg-transparent"}`} title="No confirmed price" />
+                <span className={`inline-block h-2 w-2 rounded-full ${v.hero_image_url || ((v.venue_photos as unknown as { count: number }[] | null)?.[0]?.count ?? 0) > 0 ? "bg-cobalt" : "bg-transparent"}`} title="Has a real photo" />
+                <span className={`inline-block h-2 w-2 rounded-full ${v.admin_edited_at ? "bg-[#2e9e5b]" : "bg-transparent"}`} title={v.admin_edited_at ? `Edited by admin ${new Date(v.admin_edited_at).toLocaleDateString("en-GB")}` : "Never edited by admin"} />
+              </span>
+              <span className="min-w-0 truncate"><b>{v.name}</b> <span className="text-ink/50">· {v.area}{v.status !== "verified" ? ` · ${v.status}` : ""} · {v.last_verified_at ? `verified ${new Date(v.last_verified_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "2-digit" })}` : "not verified"}</span></span>
+            </span>
             <Link href={`/admin/venues/${v.id}`} className="font-bold text-cobalt">Edit</Link>
           </li>
         ))}

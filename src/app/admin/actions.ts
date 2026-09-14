@@ -83,6 +83,7 @@ export async function saveVenue(fd: FormData) {
   patch.aliases = String(fd.get("aliases") ?? "").split("|").map((s) => s.trim()).filter(Boolean);
   try { patch.opening_hours = JSON.parse(String(fd.get("opening_hours") || "{}")); } catch { /* keep existing */ delete patch.opening_hours; }
   if (fd.get("mark_verified")) { patch.last_verified_at = new Date().toISOString(); patch.verified_by = user.id; patch.source = "admin"; }
+  patch.admin_edited_at = new Date().toISOString();
   const { error } = await supabase.from("venues").update(patch).eq("id", id);
   revalidatePath(`/admin/venues/${id}`);
   redirect(`/admin/venues/${id}?msg=${error ? encodeURIComponent(error.message) : "saved"}`);
